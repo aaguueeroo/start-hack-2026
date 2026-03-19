@@ -58,15 +58,28 @@ abstract final class GameThemeConstants {
   static const Duration storePurchaseFlyDuration = Duration(milliseconds: 420);
 
   /// Simulation chart: smooth extension when each new portfolio sample arrives.
-  static const Duration simulationChartTailDuration = Duration(milliseconds: 220);
+  static const Duration simulationChartTailDuration = Duration(
+    milliseconds: 220,
+  );
 
   /// Simulation chart: event marker scale + glow intro.
-  static const Duration simulationEventDotIntroDuration = Duration(milliseconds: 1400);
+  static const Duration simulationEventDotIntroDuration = Duration(
+    milliseconds: 1400,
+  );
 
   /// Simulation events list: spring scale entrance per row.
-  static const Duration simulationEventListItemEnterDuration =
-      Duration(milliseconds: 520);
+  static const Duration simulationEventListItemEnterDuration = Duration(
+    milliseconds: 520,
+  );
 
   /// Delay between consecutive event rows (stagger), in milliseconds.
   static const int simulationEventListStaggerMs = 48;
+
+  /// Leaderboard podium: step heights (cartoon blocks, center = tallest).
+  static const double leaderboardPodiumFirstHeight = 92.0;
+  static const double leaderboardPodiumSecondHeight = 68.0;
+  static const double leaderboardPodiumThirdHeight = 52.0;
+
+  /// Leaderboard podium: icon/badge size above each step.
+  static const double leaderboardPodiumIconSize = 60.0;
 }

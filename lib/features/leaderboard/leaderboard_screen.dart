@@ -5,6 +5,7 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
+import 'package:start_hack_2026/features/leaderboard/leaderboard_podium.dart';
 import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -82,58 +83,80 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               );
             }
 
-            return ListView.separated(
-              padding: const EdgeInsets.all(SpacingConstants.md),
-              itemCount: controller.entries.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: SpacingConstants.sm),
-              itemBuilder: (context, index) {
-                final entry = controller.entries[index];
-                return GameCard(
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 36,
-                        child: Text(
-                          '#${index + 1}',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: SpacingConstants.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LeaderboardPodium(
+                  topEntries: controller.entries.take(3).toList(),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                      SpacingConstants.md,
+                      0,
+                      SpacingConstants.md,
+                      SpacingConstants.md,
+                    ),
+                    itemCount: controller.entries.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: SpacingConstants.sm),
+                    itemBuilder: (context, index) {
+                      final entry = controller.entries[index];
+                      return GameCard(
+                        child: Row(
                           children: [
-                            Text(
-                              entry.playerName,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            SizedBox(
+                              width: 36,
+                              child: Text(
+                                '#${index + 1}',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                             ),
-                            Text(
-                              'Type: ${entry.characterType}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                            const SizedBox(width: SpacingConstants.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    entry.playerName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  Text(
+                                    'Type: ${entry.characterType}',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${entry.score}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        color: GameThemeConstants.primaryDark,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${entry.score}',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  color: GameThemeConstants.primaryDark,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ],
             );
           },
         ),
