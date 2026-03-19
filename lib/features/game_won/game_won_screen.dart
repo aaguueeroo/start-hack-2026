@@ -5,7 +5,6 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
-import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';

@@ -11,8 +11,8 @@ class SimulationController extends ChangeNotifier {
   SimulationController({
     required GameEngine gameEngine,
     required GameRepository gameRepository,
-  })  : _gameEngine = gameEngine,
-        _gameRepository = gameRepository;
+  }) : _gameEngine = gameEngine,
+       _gameRepository = gameRepository;
 
   final GameEngine _gameEngine;
   final GameRepository _gameRepository;
@@ -30,6 +30,14 @@ class SimulationController extends ChangeNotifier {
   double _lastPortfolioValue = 0;
   bool _hasWon = false;
   SimulationResult? _lastResult;
+  List<Map<String, dynamic>>? _forcedEventsForNextSimulation;
+  Future<void> Function(
+    List<SimulationDataPoint> dataPoints,
+    List<SimulationEvent> events,
+    bool isComplete,
+    double lastPortfolioValue,
+  )?
+  _multiplayerReporter;
 
   List<SimulationDataPoint> get dataPoints => _dataPoints;
   bool get hasWon => _hasWon;
@@ -65,57 +73,73 @@ class SimulationController extends ChangeNotifier {
       _skipToEnd.value = false;
       _speedMultiplier.value = 1.0;
       final eventsConfig = await _gameRepository.getEvents();
+      final scheduledForcedEvents = _buildScheduledForcedEvents(
+        _forcedEventsForNextSimulation,
+      );
+      _forcedEventsForNextSimulation = null;
       await _subscription?.cancel();
       _subscription = _gameEngine
           .startSimulation(
             eventsConfig,
+            forcedEvents: scheduledForcedEvents,
             speedMultiplier: _speedMultiplier,
             skipToEnd: _skipToEnd,
           )
           .listen(
-        (result) {
-          _lastResult = result;
-          _dataPoints.add(SimulationDataPoint(
-            timestamp: monthOffset + result.timestamp,
-            value: result.portfolioValue,
-          ));
-          _lastPortfolioValue = result.portfolioValue;
-          _activeEvents = result.getActiveEvents();
-          if (result.event != null) {
-            _events.add(SimulationEvent(
-              timestamp: monthOffset + result.event!.timestamp,
-              type: result.event!.type,
-              title: result.event!.title,
-              description: result.event!.description,
-              portfolioValueAtEvent: result.event!.portfolioValueAtEvent,
-            ));
-          }
-          notifyListeners();
-        },
-        onError: (e) {
-          _errorMessage = 'Simulation error: $e';
-          _status = SimulationStatus.error;
-          if (kDebugMode) {
-            print(_errorMessage);
-          }
-          notifyListeners();
-        },
-        onDone: () {
-          _status = SimulationStatus.complete;
-          _gameEngine.completeSimulation(_lastPortfolioValue,
-            finalCash: _lastResult?.finalCash,
-            finalHoldings: _lastResult?.finalHoldings,
-            cumulativeDataPoints: _dataPoints,
-            cumulativeEvents: _events);
-          final state = _gameEngine.state;
-          _hasWon = state != null &&
-              WinConditionChecker.checkWin(
-                character: state.character,
-                portfolioHistory: state.portfolioHistory,
+            (result) {
+              _lastResult = result;
+              _dataPoints.add(
+                SimulationDataPoint(
+                  timestamp: monthOffset + result.timestamp,
+                  value: result.portfolioValue,
+                ),
               );
-          notifyListeners();
-        },
-      );
+              _lastPortfolioValue = result.portfolioValue;
+              _activeEvents = result.getActiveEvents();
+              if (result.event != null) {
+                _events.add(
+                  SimulationEvent(
+                    timestamp: monthOffset + result.event!.timestamp,
+                    type: result.event!.type,
+                    title: result.event!.title,
+                    description: result.event!.description,
+                    portfolioValueAtEvent: result.event!.portfolioValueAtEvent,
+                  ),
+                );
+              }
+              _reportMultiplayerSnapshot(isComplete: false);
+              notifyListeners();
+            },
+            onError: (e) {
+              _errorMessage = 'Simulation error: $e';
+              _status = SimulationStatus.error;
+              _multiplayerReporter = null;
+              if (kDebugMode) {
+                print(_errorMessage);
+              }
+              notifyListeners();
+            },
+            onDone: () {
+              _status = SimulationStatus.complete;
+              _gameEngine.completeSimulation(
+                _lastPortfolioValue,
+                finalCash: _lastResult?.finalCash,
+                finalHoldings: _lastResult?.finalHoldings,
+                cumulativeDataPoints: _dataPoints,
+                cumulativeEvents: _events,
+              );
+              final state = _gameEngine.state;
+              _hasWon =
+                  state != null &&
+                  WinConditionChecker.checkWin(
+                    character: state.character,
+                    portfolioHistory: state.portfolioHistory,
+                  );
+              _reportMultiplayerSnapshot(isComplete: true);
+              _multiplayerReporter = null;
+              notifyListeners();
+            },
+          );
     } catch (e) {
       _errorMessage = 'Failed to start simulation: $e';
       _status = SimulationStatus.error;
@@ -134,7 +158,59 @@ class SimulationController extends ChangeNotifier {
     _errorMessage = null;
     _lastPortfolioValue = 0;
     _hasWon = false;
+    _forcedEventsForNextSimulation = null;
+    _multiplayerReporter = null;
     notifyListeners();
+  }
+
+  void configureForcedEventsForNextSimulation(
+    List<Map<String, dynamic>> events,
+  ) {
+    _forcedEventsForNextSimulation = List<Map<String, dynamic>>.from(events);
+  }
+
+  void configureMultiplayerReporter(
+    Future<void> Function(
+      List<SimulationDataPoint> dataPoints,
+      List<SimulationEvent> events,
+      bool isComplete,
+      double lastPortfolioValue,
+    )?
+    reporter,
+  ) {
+    _multiplayerReporter = reporter;
+  }
+
+  void _reportMultiplayerSnapshot({required bool isComplete}) {
+    final reporter = _multiplayerReporter;
+    if (reporter == null) return;
+    unawaited(
+      reporter(
+        List<SimulationDataPoint>.from(_dataPoints),
+        List<SimulationEvent>.from(_events),
+        isComplete,
+        _lastPortfolioValue,
+      ).catchError((e) {
+        _errorMessage = 'Failed to sync multiplayer simulation data: $e';
+        notifyListeners();
+      }),
+    );
+  }
+
+  List<SimulationScheduledEvent>? _buildScheduledForcedEvents(
+    List<Map<String, dynamic>>? forcedEvents,
+  ) {
+    if (forcedEvents == null || forcedEvents.isEmpty) {
+      return null;
+    }
+
+    final count = forcedEvents.length;
+    return List.generate(count, (index) {
+      final month = ((index * SimulationEngine.monthsPerYear) / count).floor();
+      final clampedMonth = month.clamp(0, SimulationEngine.monthsPerYear - 1);
+      final tick = clampedMonth * SimulationEngine.ticksPerMonth;
+      return SimulationScheduledEvent(tick: tick, config: forcedEvents[index]);
+    });
   }
 
   @override
@@ -146,9 +222,4 @@ class SimulationController extends ChangeNotifier {
   }
 }
 
-enum SimulationStatus {
-  idle,
-  running,
-  complete,
-  error,
-}
+enum SimulationStatus { idle, running, complete, error }

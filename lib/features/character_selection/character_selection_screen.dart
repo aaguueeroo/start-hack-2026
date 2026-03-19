@@ -44,7 +44,9 @@ const Map<String, String> _statDisplayNames = {
 };
 
 class CharacterSelectionScreen extends StatefulWidget {
-  const CharacterSelectionScreen({super.key});
+  const CharacterSelectionScreen({super.key, this.fromMultiplayer = false});
+
+  final bool fromMultiplayer;
 
   @override
   State<CharacterSelectionScreen> createState() =>
@@ -66,6 +68,10 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     final character = _selectedCharacter;
     if (character == null) return;
     context.read<GameController>().startNewGame(character);
+    if (widget.fromMultiplayer) {
+      context.pop();
+      return;
+    }
     context.pushReplacement('/store');
   }
 

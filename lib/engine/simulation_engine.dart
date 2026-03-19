@@ -5,7 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/domain/entities/character_stats.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/engine/asset_calculation_engine.dart';
-import 'package:start_hack_2026/engine/calculation_engine.dart' show PortfolioAsset;
+import 'package:start_hack_2026/engine/calculation_engine.dart'
+    show PortfolioAsset;
 
 /// Represents an event that is currently affecting the market.
 class ActiveEvent {
@@ -69,11 +70,17 @@ class SimulationResult {
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(activeEvents);
 }
 
+class SimulationScheduledEvent {
+  const SimulationScheduledEvent({required this.tick, required this.config});
+
+  final int tick;
+  final Map<String, dynamic> config;
+}
+
 class SimulationEngine {
-  SimulationEngine({
-    AssetCalculationEngine? assetCalculationEngine,
-  }) : _assetCalculationEngine =
-            assetCalculationEngine ?? AssetCalculationEngine();
+  SimulationEngine({AssetCalculationEngine? assetCalculationEngine})
+    : _assetCalculationEngine =
+          assetCalculationEngine ?? AssetCalculationEngine();
 
   final AssetCalculationEngine _assetCalculationEngine;
   final Random _random = Random();
@@ -91,6 +98,7 @@ class SimulationEngine {
     required int cash,
     required Map<String, PortfolioAsset> holdings,
     required List<Map<String, dynamic>> eventsConfig,
+    List<SimulationScheduledEvent>? forcedEvents,
     ValueNotifier<double>? speedMultiplier,
     ValueNotifier<bool>? skipToEnd,
   }) async* {
@@ -109,6 +117,15 @@ class SimulationEngine {
     final monthlySavings = stats.monthlySavings;
     var currentMonth = 0.0;
     final eventPool = List<Map<String, dynamic>>.from(eventsConfig);
+    final useForcedEvents = forcedEvents != null && forcedEvents.isNotEmpty;
+    final forcedByTick = <int, List<Map<String, dynamic>>>{};
+    if (useForcedEvents) {
+      for (final scheduled in forcedEvents) {
+        forcedByTick
+            .putIfAbsent(scheduled.tick, () => [])
+            .add(scheduled.config);
+      }
+    }
 
     /// Active events: each entry is (eventConfig, startMonth).
     final activeEvents = <_TrackedActiveEvent>[];
@@ -132,20 +149,42 @@ class SimulationEngine {
       activeEvents.removeWhere((e) => currentMonth >= e.endMonth);
 
       // Maybe trigger a new event (respect cooldown)
-      final canTrigger = lastEventMonth == null ||
-          (currentMonth - lastEventMonth) >= eventCooldownMonths;
-      final newEventConfig = canTrigger
-          ? _maybeTriggerEvent(eventPool, _random)
-          : null;
-      if (newEventConfig != null) lastEventMonth = currentMonth;
-      if (newEventConfig != null) {
-        final durationMonths =
-            (newEventConfig['durationMonths'] as num?)?.toDouble() ?? 1.0;
-        activeEvents.add(_TrackedActiveEvent(
-          config: newEventConfig,
-          startMonth: currentMonth,
-          endMonth: currentMonth + durationMonths,
-        ));
+      Map<String, dynamic>? newEventConfig;
+      if (useForcedEvents) {
+        final scheduledAtTick = forcedByTick[tick] ?? const [];
+        for (final scheduledConfig in scheduledAtTick) {
+          final durationMonths =
+              (scheduledConfig['durationMonths'] as num?)?.toDouble() ?? 1.0;
+          activeEvents.add(
+            _TrackedActiveEvent(
+              config: scheduledConfig,
+              startMonth: currentMonth,
+              endMonth: currentMonth + durationMonths,
+            ),
+          );
+        }
+        if (scheduledAtTick.isNotEmpty) {
+          newEventConfig = scheduledAtTick.first;
+        }
+      } else {
+        final canTrigger =
+            lastEventMonth == null ||
+            (currentMonth - lastEventMonth) >= eventCooldownMonths;
+        newEventConfig = canTrigger
+            ? _maybeTriggerEvent(eventPool, _random)
+            : null;
+        if (newEventConfig != null) {
+          lastEventMonth = currentMonth;
+          final durationMonths =
+              (newEventConfig['durationMonths'] as num?)?.toDouble() ?? 1.0;
+          activeEvents.add(
+            _TrackedActiveEvent(
+              config: newEventConfig,
+              startMonth: currentMonth,
+              endMonth: currentMonth + durationMonths,
+            ),
+          );
+        }
       }
 
       // Monthly savings added at the end of each month
@@ -165,14 +204,15 @@ class SimulationEngine {
           activeEvents: activeEvents,
           asset: asset,
         );
-        final newFactor = (returnFactors[entry.key] ?? 1.0) *
-            returnFactor *
-            eventMultiplier;
+        final newFactor =
+            (returnFactors[entry.key] ?? 1.0) * returnFactor * eventMultiplier;
         returnFactors[entry.key] = newFactor;
         newHoldings[entry.key] = asset;
       }
 
-      final volatility = _assetCalculationEngine.averageVolatility(currentHoldings);
+      final volatility = _assetCalculationEngine.averageVolatility(
+        currentHoldings,
+      );
       if (volatility > 0.2 &&
           riskTolerance < 0.5 &&
           _random.nextDouble() < 0.3) {
@@ -288,7 +328,6 @@ class SimulationEngine {
     }
     return null;
   }
-
 }
 
 class _TrackedActiveEvent {
