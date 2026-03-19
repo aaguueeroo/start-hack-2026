@@ -28,7 +28,7 @@
       "name": "EU Government Bonds (EUR)",
       "icon": "euro",
       "price": 100,
-      "expectedReturn": 3.5,
+      "expectedReturn": 2.5,
       "volatility": 4,
       "liquidity": 90,
       "managementCost": 0.15,
@@ -40,11 +40,11 @@
       "name": "Corporate Bonds",
       "icon": "business",
       "price": 120,
-      "expectedReturn": 2.5,
-      "volatility": 6,
+      "expectedReturn": 4.5,
+      "volatility": 15,
       "liquidity": 70,
       "managementCost": 0.3,
-      "creditRisk": 2,
+      "creditRisk": 8,
       "flavourText": "Companies pay more than governments to borrow — because they're riskier"
     },
     {
@@ -85,10 +85,10 @@
       "name": "Single Stocks",
       "icon": "trending_up",
       "price": 100,
-      "expectedReturn": 10,
-      "volatility": 30,
+      "expectedReturn": 20,
+      "volatility": 60,
       "liquidity": 90,
-      "managementCost": 0.2,
+      "managementCost": 0.1,
       "flavourText": "High return potential, high volatility, concentration risk"
     },
     {
@@ -96,8 +96,8 @@
       "name": "Gold / Commodities",
       "icon": "diamond",
       "price": 120,
-      "expectedReturn": 3,
-      "volatility": 15,
+      "expectedReturn": 2,
+      "volatility": 2,
       "liquidity": 85,
       "managementCost": 0.4,
       "flavourText": "Uncorrelated, inflation hedge, no yield"
@@ -108,7 +108,7 @@
       "icon": "attach_money",
       "price": 80,
       "expectedReturn": 20,
-      "volatility": 50,
+      "volatility": 60,
       "liquidity": 80,
       "managementCost": 0.5,
       "flavourText": "Very high return potential, extreme volatility"

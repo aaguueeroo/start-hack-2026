@@ -52,9 +52,10 @@ lib/
 
 ### Engines
 
-- **GameEngine** – Game state, purchases, combine, sell, completeSimulation
-- **SimulationEngine** – Runs monthly simulation, yields `SimulationResult` (portfolioValue, activeEvents, event)
-- **CalculationEngine** – Portfolio value, stats, random returns, item effects
+- **GameEngine** – Game state, purchases, combine, sell, completeSimulation; holds `AssetCalculationEngine`
+- **AssetCalculationEngine** – Single source for all asset calculations: totalValue, costBasis, totalReturnPercent, applyReturnFactor, portfolioValue, generateRandomReturn
+- **SimulationEngine** – Runs monthly simulation, yields `SimulationResult` (portfolioValue, activeEvents, event); uses AssetCalculationEngine
+- **CalculationEngine** – Portfolio stats, item effects, PortfolioAsset entity
 
 ### Simulation Details
 
@@ -92,4 +93,4 @@ lib/
 
 - **monthlySavings** must be in stats for display and simulation; fallbacks exist in `getDisplayStats` and `startSimulation`
 - Events use `durationMonths`, `marketImpact`, `riskyAssetImpact`, `safeAssetImpact` – no string-based detection
-- `completeSimulation` resets holdings and itemSlots; portfolio value already includes 12 monthly savings
+- `completeSimulation` preserves holdings (with updated values) and itemSlots; only `startNewGame` resets them

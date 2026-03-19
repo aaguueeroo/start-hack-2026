@@ -5,6 +5,7 @@ import 'package:start_hack_2026/data/repositories/game_repository.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/engine/simulation_engine.dart';
+import 'package:start_hack_2026/engine/win_condition_checker.dart';
 
 class SimulationController extends ChangeNotifier {
   SimulationController({
@@ -16,6 +17,10 @@ class SimulationController extends ChangeNotifier {
   final GameEngine _gameEngine;
   final GameRepository _gameRepository;
   StreamSubscription<SimulationResult>? _subscription;
+  final ValueNotifier<double> _speedMultiplier = ValueNotifier<double>(1.0);
+  final ValueNotifier<bool> _skipToEnd = ValueNotifier<bool>(false);
+
+  static const double _acceleratedSpeedMultiplier = 4.0;
 
   List<SimulationDataPoint> _dataPoints = [];
   List<SimulationEvent> _events = [];
@@ -23,8 +28,11 @@ class SimulationController extends ChangeNotifier {
   SimulationStatus _status = SimulationStatus.idle;
   String? _errorMessage;
   double _lastPortfolioValue = 0;
+  bool _hasWon = false;
+  SimulationResult? _lastResult;
 
   List<SimulationDataPoint> get dataPoints => _dataPoints;
+  bool get hasWon => _hasWon;
   List<SimulationEvent> get events => _events;
   SimulationStatus get status => _status;
   String? get errorMessage => _errorMessage;
@@ -34,26 +42,53 @@ class SimulationController extends ChangeNotifier {
   /// Returns the currently active market events and their impact.
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(_activeEvents);
 
+  void setAccelerating(bool isAccelerating) {
+    _speedMultiplier.value = isAccelerating ? _acceleratedSpeedMultiplier : 1.0;
+  }
+
+  void skipToEnd() {
+    if (_status == SimulationStatus.running) {
+      _skipToEnd.value = true;
+    }
+  }
+
   Future<void> startSimulation() async {
     _status = SimulationStatus.running;
-    _dataPoints = [];
-    _events = [];
+    // Load cumulative data from previous years (don't reset)
+    _dataPoints = List.from(_gameEngine.cumulativeSimulationDataPoints);
+    _events = List.from(_gameEngine.cumulativeSimulationEvents);
     _activeEvents = [];
     _errorMessage = null;
+    final monthOffset = (currentYear - 1) * 12;
     notifyListeners();
     try {
+      _skipToEnd.value = false;
+      _speedMultiplier.value = 1.0;
       final eventsConfig = await _gameRepository.getEvents();
       await _subscription?.cancel();
-      _subscription = _gameEngine.startSimulation(eventsConfig).listen(
+      _subscription = _gameEngine
+          .startSimulation(
+            eventsConfig,
+            speedMultiplier: _speedMultiplier,
+            skipToEnd: _skipToEnd,
+          )
+          .listen(
         (result) {
+          _lastResult = result;
           _dataPoints.add(SimulationDataPoint(
-            timestamp: result.timestamp,
+            timestamp: monthOffset + result.timestamp,
             value: result.portfolioValue,
           ));
           _lastPortfolioValue = result.portfolioValue;
           _activeEvents = result.getActiveEvents();
           if (result.event != null) {
-            _events.add(result.event!);
+            _events.add(SimulationEvent(
+              timestamp: monthOffset + result.event!.timestamp,
+              type: result.event!.type,
+              title: result.event!.title,
+              description: result.event!.description,
+              portfolioValueAtEvent: result.event!.portfolioValueAtEvent,
+            ));
           }
           notifyListeners();
         },
@@ -67,7 +102,17 @@ class SimulationController extends ChangeNotifier {
         },
         onDone: () {
           _status = SimulationStatus.complete;
-          _gameEngine.completeSimulation(_lastPortfolioValue);
+          _gameEngine.completeSimulation(_lastPortfolioValue,
+            finalCash: _lastResult?.finalCash,
+            finalHoldings: _lastResult?.finalHoldings,
+            cumulativeDataPoints: _dataPoints,
+            cumulativeEvents: _events);
+          final state = _gameEngine.state;
+          _hasWon = state != null &&
+              WinConditionChecker.checkWin(
+                character: state.character,
+                portfolioHistory: state.portfolioHistory,
+              );
           notifyListeners();
         },
       );
@@ -88,12 +133,15 @@ class SimulationController extends ChangeNotifier {
     _status = SimulationStatus.idle;
     _errorMessage = null;
     _lastPortfolioValue = 0;
+    _hasWon = false;
     notifyListeners();
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
+    _speedMultiplier.dispose();
+    _skipToEnd.dispose();
     super.dispose();
   }
 }
@@ -103,14 +151,4 @@ enum SimulationStatus {
   running,
   complete,
   error,
-}
-
-class SimulationDataPoint {
-  const SimulationDataPoint({
-    required this.timestamp,
-    required this.value,
-  });
-
-  final double timestamp;
-  final double value;
 }

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/domain/entities/character_stats.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
-import 'package:start_hack_2026/engine/calculation_engine.dart';
+import 'package:start_hack_2026/engine/asset_calculation_engine.dart';
+import 'package:start_hack_2026/engine/calculation_engine.dart' show PortfolioAsset;
 
 /// Represents an event that is currently affecting the market.
 class ActiveEvent {
@@ -46,6 +48,8 @@ class SimulationResult {
     required this.portfolioValue,
     this.event,
     this.activeEvents = const [],
+    this.finalCash,
+    this.finalHoldings,
   });
 
   final double timestamp;
@@ -55,15 +59,23 @@ class SimulationResult {
   /// Events currently affecting the market at this timestamp.
   final List<ActiveEvent> activeEvents;
 
+  /// Final cash after simulation (only set on last result).
+  final int? finalCash;
+
+  /// Final holdings with updated values (only set on last result).
+  final Map<String, PortfolioAsset>? finalHoldings;
+
   /// Returns the currently active events and their impact.
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(activeEvents);
 }
 
 class SimulationEngine {
-  SimulationEngine({CalculationEngine? calculationEngine})
-      : _calculationEngine = calculationEngine ?? CalculationEngine();
+  SimulationEngine({
+    AssetCalculationEngine? assetCalculationEngine,
+  }) : _assetCalculationEngine =
+            assetCalculationEngine ?? AssetCalculationEngine();
 
-  final CalculationEngine _calculationEngine;
+  final AssetCalculationEngine _assetCalculationEngine;
   final Random _random = Random();
 
   static const int monthsPerYear = 12;
@@ -79,6 +91,8 @@ class SimulationEngine {
     required int cash,
     required Map<String, PortfolioAsset> holdings,
     required List<Map<String, dynamic>> eventsConfig,
+    ValueNotifier<double>? speedMultiplier,
+    ValueNotifier<bool>? skipToEnd,
   }) async* {
     final returnFactors = <String, double>{};
     for (final entry in holdings.entries) {
@@ -86,7 +100,7 @@ class SimulationEngine {
     }
     var currentCash = cash;
     var currentHoldings = Map<String, PortfolioAsset>.from(holdings);
-    var portfolioValue = _calculationEngine.calculatePortfolioValue(
+    var portfolioValue = _assetCalculationEngine.portfolioValueWithFactors(
       cash: currentCash,
       holdings: currentHoldings,
       returnFactors: returnFactors,
@@ -104,7 +118,14 @@ class SimulationEngine {
     const eventCooldownMonths = 2.0;
 
     for (var tick = 0; tick < totalTicks; tick++) {
-      await Future<void>.delayed(tickDuration);
+      final shouldSkip = skipToEnd?.value ?? false;
+      final multiplier = (speedMultiplier?.value ?? 1.0).clamp(0.25, 10.0);
+      final delay = shouldSkip
+          ? Duration.zero
+          : Duration(
+              milliseconds: (tickDuration.inMilliseconds / multiplier).round(),
+            );
+      await Future<void>.delayed(delay);
       currentMonth = (tick / ticksPerMonth).toDouble();
 
       // Remove expired events
@@ -112,7 +133,7 @@ class SimulationEngine {
 
       // Maybe trigger a new event (respect cooldown)
       final canTrigger = lastEventMonth == null ||
-          (currentMonth - lastEventMonth!) >= eventCooldownMonths;
+          (currentMonth - lastEventMonth) >= eventCooldownMonths;
       final newEventConfig = canTrigger
           ? _maybeTriggerEvent(eventPool, _random)
           : null;
@@ -135,7 +156,7 @@ class SimulationEngine {
       final newHoldings = <String, PortfolioAsset>{};
       for (final entry in currentHoldings.entries) {
         final asset = entry.value;
-        final returnFactor = _calculationEngine.generateRandomReturn(
+        final returnFactor = _assetCalculationEngine.generateRandomReturn(
           expectedReturn: asset.expectedReturn,
           volatility: asset.volatility,
           random: _random,
@@ -151,21 +172,22 @@ class SimulationEngine {
         newHoldings[entry.key] = asset;
       }
 
-      final volatility = _averageVolatility(currentHoldings);
+      final volatility = _assetCalculationEngine.averageVolatility(currentHoldings);
       if (volatility > 0.2 &&
           riskTolerance < 0.5 &&
           _random.nextDouble() < 0.3) {
         final toSell = currentHoldings.keys.toList()..shuffle(_random);
         for (final assetId in toSell.take(1)) {
           final asset = currentHoldings[assetId]!;
-          currentCash +=
-              (asset.totalValue * (returnFactors[assetId] ?? 1.0)).toInt();
+          currentCash += _assetCalculationEngine
+              .assetValueWithFactor(asset, returnFactors[assetId] ?? 1.0)
+              .toInt();
           currentHoldings.remove(assetId);
           returnFactors.remove(assetId);
         }
       }
 
-      portfolioValue = _calculationEngine.calculatePortfolioValue(
+      portfolioValue = _assetCalculationEngine.portfolioValueWithFactors(
         cash: currentCash,
         holdings: currentHoldings,
         returnFactors: returnFactors,
@@ -188,13 +210,31 @@ class SimulationEngine {
           .map((e) => _toActiveEvent(e, currentMonth))
           .toList();
 
+      final isLastTick = tick == totalTicks - 1;
+      final finalHoldingsMap = isLastTick
+          ? _buildFinalHoldings(currentHoldings, returnFactors)
+          : null;
+
       yield SimulationResult(
         timestamp: currentMonth,
         portfolioValue: portfolioValue,
         event: event,
         activeEvents: activeList,
+        finalCash: isLastTick ? currentCash : null,
+        finalHoldings: finalHoldingsMap,
       );
     }
+  }
+
+  /// Builds final holdings with pricePerUnit updated by return factors.
+  Map<String, PortfolioAsset> _buildFinalHoldings(
+    Map<String, PortfolioAsset> holdings,
+    Map<String, double> returnFactors,
+  ) {
+    return _assetCalculationEngine.applyReturnFactorsToHoldings(
+      holdings,
+      returnFactors,
+    );
   }
 
   /// Computes the event multiplier for a single asset.
@@ -249,14 +289,6 @@ class SimulationEngine {
     return null;
   }
 
-  double _averageVolatility(Map<String, PortfolioAsset> holdings) {
-    if (holdings.isEmpty) return 0;
-    var sum = 0.0;
-    for (final asset in holdings.values) {
-      sum += asset.volatility;
-    }
-    return (sum / holdings.length) / 100;
-  }
 }
 
 class _TrackedActiveEvent {

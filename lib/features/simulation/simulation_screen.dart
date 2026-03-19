@@ -7,7 +7,8 @@ import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
-import 'package:start_hack_2026/domain/entities/simulation_event.dart';
+import 'package:start_hack_2026/domain/entities/simulation_event.dart'
+    show SimulationDataPoint, SimulationEvent, SimulationEventType;
 import 'package:start_hack_2026/engine/simulation_engine.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
@@ -35,8 +36,18 @@ class _SimulationScreenState extends State<SimulationScreen> {
         title: const Text('Simulation'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            context.read<StoreController>().refreshFromGameState();
+            context.pop();
+          },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () => context.push('/simulation-debug'),
+            tooltip: 'Debug',
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -65,7 +76,10 @@ class _SimulationScreenState extends State<SimulationScreen> {
                     const SizedBox(height: SpacingConstants.md),
                     GameButton(
                       label: 'Back to Store',
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        context.read<StoreController>().refreshFromGameState();
+                        context.pop();
+                      },
                       variant: GameButtonVariant.primary,
                     ),
                   ],
@@ -74,9 +88,25 @@ class _SimulationScreenState extends State<SimulationScreen> {
             );
           }
           final storeController = context.watch<StoreController>();
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(SpacingConstants.md),
-            child: Column(
+          return Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) {
+              if (controller.status == SimulationStatus.running) {
+                controller.setAccelerating(true);
+              }
+            },
+            onPointerUp: (_) => controller.setAccelerating(false),
+            onPointerCancel: (_) => controller.setAccelerating(false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onDoubleTap: () {
+                if (controller.status == SimulationStatus.running) {
+                  controller.skipToEnd();
+                }
+              },
+              child: SingleChildScrollView(
+              padding: const EdgeInsets.all(SpacingConstants.md),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 GameKeyFactorsBar(stats: storeController.stats),
@@ -117,13 +147,22 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 const SizedBox(height: SpacingConstants.xl),
                 if (controller.status == SimulationStatus.complete)
                   GameButton(
-                    label: 'Prepare for Next Year',
-                    icon: Icons.store,
-                    onPressed: () => context.pop(),
+                    label: controller.hasWon ? 'View Victory' : 'Prepare for Next Year',
+                    icon: controller.hasWon ? Icons.emoji_events : Icons.store,
+                    onPressed: () {
+                      context.read<StoreController>().refreshFromGameState();
+                      if (controller.hasWon) {
+                        context.pushReplacement('/game-won');
+                      } else {
+                        context.pop();
+                      }
+                    },
                     variant: GameButtonVariant.success,
                   ),
               ],
             ),
+          ),
+          ),
           );
         },
       ),
@@ -240,6 +279,9 @@ class _SimulationChart extends StatelessWidget {
         dataPoints.map((p) => p.value).reduce((a, b) => a > b ? a : b);
     final minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
     final maxY = (maxVal * 1.05).toDouble();
+    final maxTimestamp =
+        dataPoints.map((p) => p.timestamp).reduce((a, b) => a > b ? a : b);
+    final maxX = (maxTimestamp + 1).clamp(12.0, double.infinity);
     final eventSpotMap = _buildEventSpotMap();
     final eventSpotIndices = eventSpotMap.keys.toSet();
 
@@ -249,7 +291,7 @@ class _SimulationChart extends StatelessWidget {
         child: LineChart(
           LineChartData(
             minX: 0,
-            maxX: 12,
+            maxX: maxX,
             minY: minY,
             maxY: maxY,
             lineTouchData: LineTouchData(
@@ -328,10 +370,19 @@ class _SimulationChart extends StatelessWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   reservedSize: 24,
-                  getTitlesWidget: (value, meta) => Text(
-                    '${value.toInt()}m',
-                    style: const TextStyle(fontSize: 10),
-                  ),
+                  getTitlesWidget: (value, meta) {
+                    final months = value.toInt();
+                    if (months >= 12 && months % 12 == 0) {
+                      return Text(
+                        '${months ~/ 12}y',
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    }
+                    return Text(
+                      '${months}m',
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  },
                 ),
               ),
               topTitles:

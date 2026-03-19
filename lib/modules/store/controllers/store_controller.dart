@@ -120,6 +120,16 @@ class StoreController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Current total return for an owned asset (from centralized asset engine).
+  double getAssetTotalReturnPercent(PortfolioAsset asset) {
+    return _gameEngine.assetCalculationEngine.totalReturnPercent(asset);
+  }
+
+  /// Call when game state may have changed externally (e.g. after simulation).
+  void refreshFromGameState() {
+    notifyListeners();
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

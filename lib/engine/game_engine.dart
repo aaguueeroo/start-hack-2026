@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
 import 'package:start_hack_2026/domain/entities/character_stats.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
+import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/domain/entities/stat_schema.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
+import 'package:start_hack_2026/engine/asset_calculation_engine.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/simulation_engine.dart';
 
@@ -25,6 +28,8 @@ class GameState {
     required this.itemSlots,
     required this.portfolioHistory,
     this.currentYear = 1,
+    this.cumulativeSimulationDataPoints = const [],
+    this.cumulativeSimulationEvents = const [],
   });
 
   final Character character;
@@ -34,17 +39,25 @@ class GameState {
   final List<OwnedItem?> itemSlots;
   final List<PortfolioHistoryPoint> portfolioHistory;
   final int currentYear;
+  final List<SimulationDataPoint> cumulativeSimulationDataPoints;
+  final List<SimulationEvent> cumulativeSimulationEvents;
 }
 
 class GameEngine {
   GameEngine({
     CalculationEngine? calculationEngine,
     SimulationEngine? simulationEngine,
+    AssetCalculationEngine? assetCalculationEngine,
   })  : _calculationEngine = calculationEngine ?? CalculationEngine(),
-        _simulationEngine = simulationEngine ?? SimulationEngine();
+        _simulationEngine = simulationEngine ?? SimulationEngine(),
+        _assetCalculationEngine =
+            assetCalculationEngine ?? AssetCalculationEngine();
 
   final CalculationEngine _calculationEngine;
   final SimulationEngine _simulationEngine;
+  final AssetCalculationEngine _assetCalculationEngine;
+
+  AssetCalculationEngine get assetCalculationEngine => _assetCalculationEngine;
 
   GameState? _state;
 
@@ -64,6 +77,8 @@ class GameEngine {
         PortfolioHistoryPoint(year: 1, value: initialCash.toDouble()),
       ],
       currentYear: 1,
+      cumulativeSimulationDataPoints: [],
+      cumulativeSimulationEvents: [],
     );
   }
 
@@ -86,11 +101,10 @@ class GameEngine {
 
   double get currentPortfolioValue {
     if (_state == null) return 0;
-    var total = _state!.cash.toDouble();
-    for (final asset in _state!.holdings.values) {
-      total += asset.totalValue;
-    }
-    return total;
+    return _assetCalculationEngine.portfolioValue(
+      cash: _state!.cash,
+      holdings: _state!.holdings,
+    );
   }
 
   bool validatePurchase(StoreItem item, List<StatSchema> schema) {
@@ -131,20 +145,22 @@ class GameEngine {
         level: item.level,
       );
       slots[firstEmpty] = owned;
-      _state = GameState(
-        character: _state!.character,
-        stats: _calculationEngine.applyItemEffects(
-          currentStats: _state!.stats,
-          item: item,
-          schema: schema,
-          levelMultiplier: item.level,
-        ),
-        cash: _state!.cash - item.price,
-        holdings: _state!.holdings,
-        itemSlots: slots,
-        portfolioHistory: _state!.portfolioHistory,
-        currentYear: _state!.currentYear,
-      );
+    _state = GameState(
+      character: _state!.character,
+      stats: _calculationEngine.applyItemEffects(
+        currentStats: _state!.stats,
+        item: item,
+        schema: schema,
+        levelMultiplier: item.level,
+      ),
+      cash: _state!.cash - item.price,
+      holdings: _state!.holdings,
+      itemSlots: slots,
+      portfolioHistory: _state!.portfolioHistory,
+      currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+    );
       return;
     }
     final mergeTargetSlot = _findMergeTargetSlotForStoreItem(item);
@@ -196,6 +212,8 @@ class GameEngine {
       itemSlots: slots,
       portfolioHistory: _state!.portfolioHistory,
       currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
     );
   }
 
@@ -250,6 +268,8 @@ class GameEngine {
       itemSlots: slots,
       portfolioHistory: _state!.portfolioHistory,
       currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
     );
   }
 
@@ -260,7 +280,8 @@ class GameEngine {
     final newQuantity = quantity;
     final newPrice = asset.price.toDouble();
     if (existing != null) {
-      final totalCost = existing.totalValue + (newQuantity * newPrice);
+      final totalCost = _assetCalculationEngine.totalValue(existing) +
+          (newQuantity * newPrice);
       final totalQty = existing.quantity + newQuantity;
       final avgPrice = totalCost / totalQty;
       holdings[asset.id] = PortfolioAsset(
@@ -298,13 +319,15 @@ class GameEngine {
       itemSlots: _state!.itemSlots,
       portfolioHistory: _state!.portfolioHistory,
       currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
     );
   }
 
   int getAssetSaleValue(String assetId) {
     final asset = _state?.holdings[assetId];
     if (asset == null) return 0;
-    return (asset.totalValue).toInt();
+    return _assetCalculationEngine.saleValue(asset);
   }
 
   void sellAsset(String assetId) {
@@ -313,7 +336,7 @@ class GameEngine {
     if (asset == null) return;
     final holdings = Map<String, PortfolioAsset>.from(_state!.holdings);
     holdings.remove(assetId);
-    final saleValue = asset.totalValue.toInt();
+    final saleValue = _assetCalculationEngine.saleValue(asset);
     _state = GameState(
       character: _state!.character,
       stats: _state!.stats,
@@ -322,10 +345,16 @@ class GameEngine {
       itemSlots: _state!.itemSlots,
       portfolioHistory: _state!.portfolioHistory,
       currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
     );
   }
 
-  Stream<SimulationResult> startSimulation(List<Map<String, dynamic>> events) {
+  Stream<SimulationResult> startSimulation(
+    List<Map<String, dynamic>> events, {
+    ValueNotifier<double>? speedMultiplier,
+    ValueNotifier<bool>? skipToEnd,
+  }) {
     if (_state == null) {
       return Stream.empty();
     }
@@ -341,6 +370,8 @@ class GameEngine {
       cash: _state!.cash,
       holdings: _state!.holdings,
       eventsConfig: events,
+      speedMultiplier: speedMultiplier,
+      skipToEnd: skipToEnd,
     );
   }
 
@@ -362,26 +393,49 @@ class GameEngine {
     return stats;
   }
 
-  void completeSimulation(double finalPortfolioValue) {
+  void completeSimulation(
+    double finalPortfolioValue, {
+    int? finalCash,
+    Map<String, PortfolioAsset>? finalHoldings,
+    List<SimulationDataPoint>? cumulativeDataPoints,
+    List<SimulationEvent>? cumulativeEvents,
+  }) {
     if (_state == null) return;
-    final cashAfterSim = finalPortfolioValue.toInt();
+    final cashAfterSim = finalCash ?? finalPortfolioValue.toInt();
+    final holdingsAfterSim =
+        finalHoldings ?? <String, PortfolioAsset>{};
     final monthlySavings =
         (_state!.character.initialStats['monthlySavings'] ?? 0).toInt();
     final nextYear = _state!.currentYear + 1;
     final baseStats = Map<String, num>.from(_state!.character.initialStats);
     baseStats['money'] = cashAfterSim.toDouble();
     baseStats['monthlySavings'] = monthlySavings.toDouble();
+    final portfolioValueForHistory =
+        _assetCalculationEngine.portfolioValue(
+          cash: cashAfterSim,
+          holdings: holdingsAfterSim,
+        );
     _state = GameState(
       character: _state!.character,
       stats: CharacterStats(baseStats),
       cash: cashAfterSim,
-      holdings: {},
-      itemSlots: List.filled(_itemSlotsCount, null),
+      holdings: holdingsAfterSim,
+      itemSlots: List.from(_state!.itemSlots),
       portfolioHistory: [
         ..._state!.portfolioHistory,
-        PortfolioHistoryPoint(year: nextYear, value: cashAfterSim.toDouble()),
+        PortfolioHistoryPoint(year: nextYear, value: portfolioValueForHistory),
       ],
       currentYear: nextYear,
+      cumulativeSimulationDataPoints:
+          cumulativeDataPoints ?? _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents:
+          cumulativeEvents ?? _state!.cumulativeSimulationEvents,
     );
   }
+
+  List<SimulationDataPoint> get cumulativeSimulationDataPoints =>
+      List.from(_state?.cumulativeSimulationDataPoints ?? []);
+
+  List<SimulationEvent> get cumulativeSimulationEvents =>
+      List.from(_state?.cumulativeSimulationEvents ?? []);
 }

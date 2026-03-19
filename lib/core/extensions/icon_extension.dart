@@ -23,6 +23,8 @@ extension IconNameExtension on String {
         return Icons.show_chart;
       case 'account_balance':
         return Icons.account_balance;
+      case 'rocket_launch':
+        return Icons.rocket_launch;
       case 'attach_money':
         return Icons.attach_money;
       case 'diamond':

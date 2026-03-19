@@ -10,8 +10,11 @@ import 'package:start_hack_2026/data/services/supabase_leaderboard_service.dart'
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/features/achievements/achievements_screen.dart';
 import 'package:start_hack_2026/features/character_selection/character_selection_screen.dart';
+import 'package:start_hack_2026/features/glossary/glossary_screen.dart';
 import 'package:start_hack_2026/features/home/home_screen.dart';
 import 'package:start_hack_2026/features/leaderboard/leaderboard_screen.dart';
+import 'package:start_hack_2026/features/game_won/game_won_screen.dart';
+import 'package:start_hack_2026/features/simulation/simulation_debug_screen.dart';
 import 'package:start_hack_2026/features/simulation/simulation_screen.dart';
 import 'package:start_hack_2026/features/store/store_screen.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
@@ -26,17 +29,13 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<JsonDataLoader>(
-          create: (_) => JsonDataLoader(),
-        ),
+        Provider<JsonDataLoader>(create: (_) => JsonDataLoader()),
         Provider<MockGameRepository>(
           create: (context) => MockGameRepository(
             jsonDataLoader: context.read<JsonDataLoader>(),
           ),
         ),
-        Provider<GameEngine>(
-          create: (_) => GameEngine(),
-        ),
+        Provider<GameEngine>(create: (_) => GameEngine()),
         ChangeNotifierProvider<GameController>(
           create: (context) => GameController(
             gameRepository: context.read<MockGameRepository>(),
@@ -69,6 +68,7 @@ class App extends StatelessWidget {
         ),
       ],
       child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
         theme: GameTheme.light,
         routerConfig: _router,
@@ -80,21 +80,27 @@ class App extends StatelessWidget {
 final GoRouter _router = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
-      path: '/',
-      builder: (context, state) => const HomeScreen(),
+      path: '/glossary',
+      builder: (context, state) => const GlossaryScreen(),
     ),
     GoRoute(
       path: '/character-selection',
       builder: (context, state) => const CharacterSelectionScreen(),
     ),
-    GoRoute(
-      path: '/store',
-      builder: (context, state) => const StoreScreen(),
-    ),
+    GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
     GoRoute(
       path: '/simulation',
       builder: (context, state) => const SimulationScreen(),
+    ),
+    GoRoute(
+      path: '/simulation-debug',
+      builder: (context, state) => const SimulationDebugScreen(),
+    ),
+    GoRoute(
+      path: '/game-won',
+      builder: (context, state) => const GameWonScreen(),
     ),
     GoRoute(
       path: '/achievements',

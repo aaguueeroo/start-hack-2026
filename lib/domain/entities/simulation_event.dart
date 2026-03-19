@@ -26,3 +26,14 @@ class SimulationEvent {
   final String description;
   final double portfolioValueAtEvent;
 }
+
+/// A single data point on the simulation portfolio value graph.
+class SimulationDataPoint {
+  const SimulationDataPoint({
+    required this.timestamp,
+    required this.value,
+  });
+
+  final double timestamp;
+  final double value;
+}
