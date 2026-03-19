@@ -517,7 +517,7 @@ List<StatSchema> _filterStoreStatsByCategory(
   Map<String, num> stats,
   String category,
 ) {
-  return schema
+  final filtered = schema
       .where(
         (StatSchema s) =>
             stats.containsKey(s.id) &&
@@ -525,6 +525,30 @@ List<StatSchema> _filterStoreStatsByCategory(
             s.category == category,
       )
       .toList();
+
+  if (category == 'personal') {
+    const fallbackPersonalStats = <String, String>{
+      'riskTolerance': 'Risk Tolerance',
+      'financialKnowledge': 'Financial Knowledge',
+      'monthlySavings': 'Monthly Savings',
+    };
+    final existingIds = filtered.map((s) => s.id).toSet();
+    for (final entry in fallbackPersonalStats.entries) {
+      if (!stats.containsKey(entry.key) || existingIds.contains(entry.key)) {
+        continue;
+      }
+      filtered.add(
+        StatSchema(
+          id: entry.key,
+          displayName: entry.value,
+          description: '',
+          category: 'personal',
+        ),
+      );
+    }
+  }
+
+  return filtered;
 }
 
 const _statIcons = <String, IconData>{
@@ -532,6 +556,8 @@ const _statIcons = <String, IconData>{
   'assetSlots': Icons.grid_view,
   'knowledgeSlots': Icons.menu_book,
   'monthlySavings': Icons.savings,
+  'riskTolerance': Icons.psychology,
+  'financialKnowledge': Icons.school,
   'return': Icons.trending_up,
   'volatility': Icons.show_chart,
   'diversification': Icons.pie_chart,

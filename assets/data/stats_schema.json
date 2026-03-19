@@ -11,20 +11,39 @@
       "displayName": "Asset Slots",
       "description": "Maximum number of different assets you can hold at once.",
       "min": 1,
-      "max": 10
+      "max": 10,
+      "category": "personal"
     },
     {
       "id": "knowledgeSlots",
       "displayName": "Knowledge Slots",
       "description": "How many knowledge items you can hold at once. Buy duplicates to merge levels or fill extra slots.",
       "min": 1,
-      "max": 12
+      "max": 12,
+      "category": "personal"
+    },
+    {
+      "id": "riskTolerance",
+      "displayName": "Risk Tolerance",
+      "description": "How much volatility and drawdown you can psychologically accept.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
+    },
+    {
+      "id": "financialKnowledge",
+      "displayName": "Financial Knowledge",
+      "description": "Your understanding of investing concepts and disciplined decisions.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
     },
     {
       "id": "monthlySavings",
       "displayName": "Monthly Savings",
       "description": "Amount you save and invest each month.",
-      "min": 0
+      "min": 0,
+      "category": "personal"
     },
     {
       "id": "return",
