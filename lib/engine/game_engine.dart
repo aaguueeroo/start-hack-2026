@@ -127,7 +127,8 @@ class GameEngine {
     if (_state == null) return false;
     if (item.price > _state!.cash) return false;
     if (item is StoreItemAsset) {
-      if (holdingsCount >= assetSlots) return false;
+      final addingToExisting = _state!.holdings.containsKey(item.id);
+      if (!addingToExisting && holdingsCount >= assetSlots) return false;
     }
     if (item is StoreItemItem) {
       final freeSlots = _state!.itemSlots.where((s) => s == null).length;

@@ -204,6 +204,8 @@ class StoreController extends ChangeNotifier {
         if (!_slotMatchesItem(offerIndex, a)) return false;
         if (!_applyAssetPurchase(a)) return false;
         _removeOfferAt(offerIndex);
+        // Card leaves the shelf (no replacement). The same asset can stack
+        // when it shows up again after reshuffle or a new round’s store refresh.
         HapticFeedback.lightImpact();
         notifyListeners();
         return true;

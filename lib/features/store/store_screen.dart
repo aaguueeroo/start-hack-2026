@@ -369,6 +369,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                         _assetSectionContentKey,
                                     getAssetCardKey: _globalKeyForAssetCard,
                                     holdings: controller.holdings,
+                                    maxAssetSlots: controller.maxAssetSlots,
                                     getAssetAllocationPercent:
                                         controller.getAssetAllocationPercent,
                                     onSell: controller.sellAsset,
