@@ -13,7 +13,7 @@ class CharacterStats {
 
   int get assetSlots => get('assetSlots').toInt();
 
-  int get annualIncome => get('annualIncome').toInt();
+  int get monthlySavings => get('monthlySavings').toInt();
 
   double get returnStat => get('return').toDouble();
 

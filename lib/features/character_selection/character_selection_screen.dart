@@ -16,7 +16,7 @@ const Map<String, String> _statDisplayNames = {
   'riskTolerance': 'Risk Tolerance',
   'financialKnowledge': 'Financial Knowledge',
   'assetSlots': 'Asset Slots',
-  'annualIncome': 'Annual Income',
+  'monthlySavings': 'Monthly Savings',
   'emotionalReaction': 'Emotional Reaction',
   'knowledge': 'Knowledge',
   'investmentHorizonRemaining': 'Investment Horizon',

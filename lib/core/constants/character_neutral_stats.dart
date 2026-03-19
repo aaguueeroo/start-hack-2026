@@ -9,7 +9,7 @@ class CharacterNeutralStats {
     'riskTolerance': 50,
     'financialKnowledge': 60,
     'assetSlots': 5,
-    'annualIncome': 5000,
+    'monthlySavings': 417,
     'return': 0,
     'volatility': 0,
     'diversification': 0,

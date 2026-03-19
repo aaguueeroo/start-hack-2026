@@ -329,8 +329,15 @@ class GameEngine {
     if (_state == null) {
       return Stream.empty();
     }
+    var statsToPass = _state!.stats;
+    final charMonthly = _state!.character.initialStats['monthlySavings'];
+    if ((statsToPass.get('monthlySavings') == 0) && charMonthly != null) {
+      final merged = Map<String, num>.from(statsToPass.values);
+      merged['monthlySavings'] = charMonthly;
+      statsToPass = CharacterStats(merged);
+    }
     return _simulationEngine.runSimulation(
-      stats: _state!.stats,
+      stats: statsToPass,
       cash: _state!.cash,
       holdings: _state!.holdings,
       eventsConfig: events,
@@ -341,24 +348,29 @@ class GameEngine {
     if (_state == null) return {};
     final baseStats = Map<String, num>.from(_state!.character.initialStats);
     baseStats['money'] = _state!.cash.toDouble();
-    return _calculationEngine.calculatePortfolioStats(
+    final stats = _calculationEngine.calculatePortfolioStats(
       baseStats: baseStats,
       holdings: _state!.holdings,
       itemSlots: _state!.itemSlots,
       schema: schema,
     );
+    // Ensure monthlySavings is always present for display
+    if (!stats.containsKey('monthlySavings')) {
+      stats['monthlySavings'] =
+          (_state!.character.initialStats['monthlySavings'] ?? 0).toDouble();
+    }
+    return stats;
   }
 
   void completeSimulation(double finalPortfolioValue) {
     if (_state == null) return;
-    final newCash = finalPortfolioValue.toInt();
-    final annualIncome =
-        (_state!.character.initialStats['annualIncome'] ?? 0).toInt();
-    final cashAfterSim = newCash + annualIncome;
+    final cashAfterSim = finalPortfolioValue.toInt();
+    final monthlySavings =
+        (_state!.character.initialStats['monthlySavings'] ?? 0).toInt();
     final nextYear = _state!.currentYear + 1;
     final baseStats = Map<String, num>.from(_state!.character.initialStats);
-    baseStats['money'] = newCash.toDouble();
-    baseStats['annualIncome'] = annualIncome.toDouble();
+    baseStats['money'] = cashAfterSim.toDouble();
+    baseStats['monthlySavings'] = monthlySavings.toDouble();
     _state = GameState(
       character: _state!.character,
       stats: CharacterStats(baseStats),

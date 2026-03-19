@@ -3,21 +3,21 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 
 const _keyFactorIds = {
-  'annualIncome',
+  'monthlySavings',
   'riskTolerance',
   'return',
   'volatility',
 };
 
 const _displayNames = {
-  'annualIncome': 'Annual Income',
+  'monthlySavings': 'Monthly Savings',
   'riskTolerance': 'Risk Tolerance',
   'return': 'Expected Return',
   'volatility': 'Volatility',
 };
 
 const _icons = {
-  'annualIncome': Icons.payments,
+  'monthlySavings': Icons.savings,
   'riskTolerance': Icons.psychology,
   'return': Icons.trending_up,
   'volatility': Icons.show_chart,
@@ -63,7 +63,7 @@ class GameKeyFactorsBar extends StatelessWidget {
 
   String _formatValue(String id, num value) {
     switch (id) {
-      case 'annualIncome':
+      case 'monthlySavings':
         return '\$${value.toStringAsFixed(0)}';
       case 'riskTolerance':
         return '${value.toStringAsFixed(0)}%';

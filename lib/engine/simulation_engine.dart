@@ -92,8 +92,7 @@ class SimulationEngine {
       returnFactors: returnFactors,
     );
     final riskTolerance = stats.riskTolerance / 100.0;
-    final annualIncome = stats.annualIncome;
-    final incomePerTick = annualIncome / totalTicks;
+    final monthlySavings = stats.monthlySavings;
     var currentMonth = 0.0;
     final eventPool = List<Map<String, dynamic>>.from(eventsConfig);
 
@@ -128,7 +127,10 @@ class SimulationEngine {
         ));
       }
 
-      currentCash += incomePerTick.toInt();
+      // Monthly savings added at the end of each month
+      if ((tick + 1) % ticksPerMonth == 0) {
+        currentCash += monthlySavings;
+      }
 
       final newHoldings = <String, PortfolioAsset>{};
       for (final entry in currentHoldings.entries) {
