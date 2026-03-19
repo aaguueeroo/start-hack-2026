@@ -15,7 +15,12 @@ abstract class GameRepository {
 
   Future<List<Map<String, dynamic>>> getLifeEvents();
 
-  Future<List<StoreItem>> getStoreOffer({int itemCount = 4});
+  /// [currentYear] biases knowledge-item (non-asset) card levels: later years
+  /// roll higher levels with higher probability (see mock implementation).
+  Future<List<StoreItem>> getStoreOffer({
+    int itemCount = 4,
+    int currentYear = 1,
+  });
 
   Future<StoreItem> getRandomStoreItem();
 }

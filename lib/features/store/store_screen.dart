@@ -376,6 +376,9 @@ class _StoreScreenState extends State<StoreScreen> {
                                     getAssetCardKey: _globalKeyForAssetCard,
                                     holdings: controller.holdings,
                                     maxAssetSlots: controller.maxAssetSlots,
+                                    totalAllocatedPercent:
+                                        100 -
+                                        controller.remainingAllocationPercent,
                                     getAssetAllocationPercent:
                                         controller.getAssetAllocationPercent,
                                     onSell: controller.sellAsset,
@@ -1418,6 +1421,7 @@ class _AssetSlotsSection extends StatefulWidget {
     required this.getAssetCardKey,
     required this.holdings,
     required this.maxAssetSlots,
+    required this.totalAllocatedPercent,
     required this.getAssetAllocationPercent,
     required this.onSell,
     required this.statsSchema,
@@ -1428,6 +1432,8 @@ class _AssetSlotsSection extends StatefulWidget {
   final GlobalKey Function(String assetId) getAssetCardKey;
   final Map<String, PortfolioAsset> holdings;
   final int maxAssetSlots;
+  /// Sum of per-asset allocation labels (each store buy adds 10% to a line).
+  final int totalAllocatedPercent;
   final int Function(String assetId) getAssetAllocationPercent;
   final void Function(String assetId) onSell;
   final List<StatSchema> statsSchema;
@@ -1491,6 +1497,15 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: GameThemeConstants.outlineColorLight,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${widget.totalAllocatedPercent}% / 100% allocation budget '
+                    '(each buy tags 10%; new assets rebalance existing tags)',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: GameThemeConstants.outlineColorLight,
+                          fontSize: 11,
+                        ),
                   ),
                 ],
               ),

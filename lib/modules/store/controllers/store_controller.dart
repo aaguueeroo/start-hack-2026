@@ -63,7 +63,9 @@ class StoreController extends ChangeNotifier {
     notifyListeners();
     try {
       _statsSchema = await _gameRepository.getStatsSchema();
-      _storeOffer = await _gameRepository.getStoreOffer();
+      _storeOffer = await _gameRepository.getStoreOffer(
+        currentYear: currentYear,
+      );
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Failed to load store: $e';
@@ -99,7 +101,9 @@ class StoreController extends ChangeNotifier {
     final cost = reshuffleCost;
     if (_gameEngine.currentCash < cost) return;
     try {
-      final newOffer = await _gameRepository.getStoreOffer();
+      final newOffer = await _gameRepository.getStoreOffer(
+        currentYear: currentYear,
+      );
       if (!_gameEngine.spendCash(cost)) return;
       _reshuffleCount++;
       _storeOffer = newOffer;
@@ -114,7 +118,9 @@ class StoreController extends ChangeNotifier {
 
   Future<void> refreshStoreOffer() async {
     try {
-      _storeOffer = await _gameRepository.getStoreOffer();
+      _storeOffer = await _gameRepository.getStoreOffer(
+        currentYear: currentYear,
+      );
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
@@ -153,18 +159,22 @@ class StoreController extends ChangeNotifier {
   }
 
   bool _canBuyAsset(StoreItemAsset asset) {
-    if (remainingAllocationPercent < _allocationPercentPerBuy) return false;
-    final totalCapital = _gameEngine.currentPortfolioValue;
-    final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
-    if (_gameEngine.currentCash < amountToSpend) return false;
-    final quantity = (amountToSpend / asset.price).floor();
-    if (quantity < 1) return false;
-    // Need a free asset slot unless adding to existing holding
     final hasExisting = _gameEngine.currentHoldings.containsKey(asset.id);
     if (!hasExisting &&
         _gameEngine.holdingsCount >= _gameEngine.assetSlots) {
       return false;
     }
+    // Adding to an existing line needs 10% headroom on the global allocation
+    // budget. Opening a *new* slot can rebalance existing labels in the engine
+    // to free 10%, so we only gate on headroom when stacking the same asset.
+    if (hasExisting && remainingAllocationPercent < _allocationPercentPerBuy) {
+      return false;
+    }
+    final totalCapital = _gameEngine.currentPortfolioValue;
+    final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
+    if (_gameEngine.currentCash < amountToSpend) return false;
+    final quantity = (amountToSpend / asset.price).floor();
+    if (quantity < 1) return false;
     return true;
   }
 
@@ -196,7 +206,7 @@ class StoreController extends ChangeNotifier {
     if (quantity < 1) return false;
     _gameEngine.applyAssetPurchase(asset, quantity,
         allocationPercent: _allocationPercentPerBuy);
-    _allocatedPercent += _allocationPercentPerBuy;
+    _syncAllocatedPercent();
     return true;
   }
 
@@ -246,9 +256,8 @@ class StoreController extends ChangeNotifier {
   }
 
   void sellAsset(String assetId) {
-    final allocation = _gameEngine.getAssetAllocationPercent(assetId);
     _gameEngine.sellAsset(assetId);
-    _allocatedPercent = (_allocatedPercent - allocation).clamp(0, 100);
+    _syncAllocatedPercent();
     notifyListeners();
   }
 

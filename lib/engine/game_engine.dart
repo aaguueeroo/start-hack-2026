@@ -9,6 +9,53 @@ import 'package:start_hack_2026/engine/asset_calculation_engine.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/simulation_engine.dart';
 
+/// Shrinks existing allocation labels so their sum is `100 - percentToAdd`,
+/// making room for a new holding without exceeding 100% total.
+Map<String, int> _rebalanceAllocationPercentsForNewPurchase({
+  required Map<String, int> current,
+  required Set<String> holdingAssetIds,
+  required int percentToAdd,
+}) {
+  if (percentToAdd <= 0 || holdingAssetIds.isEmpty) {
+    return Map<String, int>.from(current);
+  }
+  final weights = <String, int>{
+    for (final id in holdingAssetIds) id: current[id] ?? 0,
+  };
+  final sum = weights.values.fold<int>(0, (a, b) => a + b);
+  if (sum + percentToAdd <= 100) {
+    return Map<String, int>.from(current);
+  }
+  final target = 100 - percentToAdd;
+  if (sum <= 0) {
+    final list = holdingAssetIds.toList();
+    final base = target ~/ list.length;
+    var remainder = target - base * list.length;
+    return {
+      for (var i = 0; i < list.length; i++)
+        list[i]: base + (i < remainder ? 1 : 0),
+    };
+  }
+  final scaled = <String, double>{
+    for (final e in weights.entries) e.key: e.value * target / sum,
+  };
+  final out = <String, int>{
+    for (final e in scaled.entries) e.key: e.value.floor(),
+  };
+  var missing = target - out.values.fold<int>(0, (a, b) => a + b);
+  final order = scaled.keys.toList()
+    ..sort((a, b) {
+      final fa = scaled[a]! - out[a]!;
+      final fb = scaled[b]! - out[b]!;
+      return fb.compareTo(fa);
+    });
+  for (var i = 0; i < missing; i++) {
+    final k = order[i];
+    out[k] = out[k]! + 1;
+  }
+  return out;
+}
+
 class PortfolioHistoryPoint {
   const PortfolioHistoryPoint({
     required this.year,
@@ -341,7 +388,18 @@ class GameEngine {
       );
     }
     final totalCost = asset.price * quantity;
-    final allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
+    var allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
+    if (existing == null) {
+      if (holdings.isNotEmpty) {
+        allocationMap = _rebalanceAllocationPercentsForNewPurchase(
+          current: allocationMap,
+          holdingAssetIds: holdings.keys.toSet(),
+          percentToAdd: allocationPercent,
+        );
+      } else {
+        allocationMap.clear();
+      }
+    }
     allocationMap[asset.id] =
         (allocationMap[asset.id] ?? 0) + allocationPercent;
     _state = GameState(
