@@ -37,6 +37,38 @@ Simulations run your portfolio through time and **show events** as they occur. E
 
 Each event displays a title, description, and your portfolio value at that moment. The simulation illustrates how your choices and external events interact over the years.
 
+### Achievements
+
+Players are encouraged to test different strategies and see how the market reacts.  
+Here is a sample list of potential achievements:
+
+- **Panic Seller**  
+  Sell an asset right before it goes up in value.
+
+- **Bookworm Investor**  
+  Buy your first knowledge item.
+
+- **MBA**  
+  Merge knowledge items to reach level 3.
+
+- **Don’t Put All Eggs in One Basket**  
+  Reach a high diversification score with a balanced portfolio.
+
+- **Buy High, Cry Later**  
+  Purchase an asset and end the same simulation year at a loss.
+
+- **Hands in Pockets**  
+  Start a store phase and buy absolutely nothing.
+
+- **Instant Noodle to IPO**  
+  Finish a simulation with portfolio value at least 2x your starting money.
+
+- **Crash Test Investor**  
+  Survive a market crash event and still end the year positive.
+
+- **Grip of Steel**  
+  Hold a volatile asset through a full simulation without selling.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
