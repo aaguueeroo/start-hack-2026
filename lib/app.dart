@@ -23,17 +23,13 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<JsonDataLoader>(
-          create: (_) => JsonDataLoader(),
-        ),
+        Provider<JsonDataLoader>(create: (_) => JsonDataLoader()),
         Provider<MockGameRepository>(
           create: (context) => MockGameRepository(
             jsonDataLoader: context.read<JsonDataLoader>(),
           ),
         ),
-        Provider<GameEngine>(
-          create: (_) => GameEngine(),
-        ),
+        Provider<GameEngine>(create: (_) => GameEngine()),
         ChangeNotifierProvider<GameController>(
           create: (context) => GameController(
             gameRepository: context.read<MockGameRepository>(),
@@ -54,6 +50,7 @@ class App extends StatelessWidget {
         ),
       ],
       child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
         theme: GameTheme.light,
         routerConfig: _router,
@@ -65,18 +62,12 @@ class App extends StatelessWidget {
 final GoRouter _router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomeScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/character-selection',
       builder: (context, state) => const CharacterSelectionScreen(),
     ),
-    GoRoute(
-      path: '/store',
-      builder: (context, state) => const StoreScreen(),
-    ),
+    GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
     GoRoute(
       path: '/simulation',
       builder: (context, state) => const SimulationScreen(),
