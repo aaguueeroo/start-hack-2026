@@ -115,7 +115,6 @@ class SimulationEngine {
       returnFactors: returnFactors,
     );
     final riskTolerance = stats.riskTolerance / 100.0;
-    final monthlySavings = stats.monthlySavings;
     var currentMonth = 0.0;
     final eventPool = List<Map<String, dynamic>>.from(eventsConfig);
     final lifePool = List<Map<String, dynamic>>.from(lifeEventsConfig);
@@ -206,10 +205,7 @@ class SimulationEngine {
         }
       }
 
-      // Monthly savings added at the end of each month
-      if ((tick + 1) % ticksPerMonth == 0) {
-        currentCash += monthlySavings;
-      }
+      // Monthly savings injection is disabled.
 
       final newHoldings = <String, PortfolioAsset>{};
       for (final entry in currentHoldings.entries) {
