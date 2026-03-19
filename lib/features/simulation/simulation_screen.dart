@@ -6,9 +6,11 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/engine/simulation_engine.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
+import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
 class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
@@ -71,11 +73,13 @@ class _SimulationScreenState extends State<SimulationScreen> {
               ),
             );
           }
+          final storeController = context.watch<StoreController>();
           return SingleChildScrollView(
             padding: const EdgeInsets.all(SpacingConstants.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                GameKeyFactorsBar(stats: storeController.stats),
                 Text(
                   'Year ${controller.currentYear}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(

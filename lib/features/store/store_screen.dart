@@ -7,6 +7,7 @@ import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
 import 'package:start_hack_2026/domain/entities/stat_schema.dart';
@@ -188,6 +189,7 @@ class _StoreScreenState extends State<StoreScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        GameKeyFactorsBar(stats: controller.stats),
                         _BuySection(
                           storeOffer: controller.storeOffer,
                           canBuy: controller.canBuy,
