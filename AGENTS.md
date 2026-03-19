@@ -10,7 +10,7 @@
 - **Provider** – state
 - **go_router** – navigation
 - **fl_chart** – simulation chart
-- **google_fonts**, **widget_tooltip**
+- **widget_tooltip** (Nunito & Fredoka are bundled under `assets/fonts/` via `pubspec.yaml`)
 
 ## Architecture
 

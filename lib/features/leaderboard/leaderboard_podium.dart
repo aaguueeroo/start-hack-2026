@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/leaderboard_image_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
@@ -42,7 +41,8 @@ class LeaderboardPodium extends StatelessWidget {
         children: [
           Text(
             'Top players',
-            style: GoogleFonts.fredoka(
+            style: TextStyle(
+              fontFamily: 'Fredoka',
               fontSize: 22,
               fontWeight: FontWeight.w600,
               color: GameThemeConstants.outlineColor,
@@ -131,7 +131,8 @@ class _PodiumColumn extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: GoogleFonts.fredoka(
+            style: TextStyle(
+              fontFamily: 'Fredoka',
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: hasPlayer
@@ -144,7 +145,8 @@ class _PodiumColumn extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               scoreText,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
+                fontFamily: 'Nunito',
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: GameThemeConstants.primaryDark,
@@ -264,7 +266,8 @@ class _PodiumBlock extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 rankLabel,
-                style: GoogleFonts.fredoka(
+                style: TextStyle(
+                  fontFamily: 'Fredoka',
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: GameThemeConstants.outlineColor,

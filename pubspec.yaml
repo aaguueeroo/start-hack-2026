@@ -37,7 +37,6 @@ dependencies:
   provider: ^6.1.2
   fl_chart: ^0.69.0
   go_router: ^14.6.2
-  google_fonts: ^6.2.1
   widget_tooltip: ^1.4.1
   shared_preferences: ^2.5.3
   flutter_dotenv: ^5.2.1
@@ -100,6 +99,14 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Variable.ttf
+    - family: Fredoka
+      fonts:
+        - asset: assets/fonts/Fredoka-Variable.ttf
 
 # App icon configuration (run: dart run flutter_launcher_icons)
 flutter_launcher_icons:

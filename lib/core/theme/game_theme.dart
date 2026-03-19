@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 
 class GameTheme {
@@ -21,68 +20,81 @@ class GameTheme {
       ),
       scaffoldBackgroundColor: GameThemeConstants.creamBackground,
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.fredoka(
+        displayLarge: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 32,
           fontWeight: FontWeight.w400,
           color: textColor,
           height: 1.2,
         ),
-        displayMedium: GoogleFonts.fredoka(
+        displayMedium: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 28,
           fontWeight: FontWeight.w400,
           color: textColor,
         ),
-        displaySmall: GoogleFonts.fredoka(
+        displaySmall: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 24,
           fontWeight: FontWeight.w400,
           color: textColor,
         ),
-        headlineLarge: GoogleFonts.fredoka(
+        headlineLarge: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 22,
           fontWeight: FontWeight.w400,
           color: textColor,
         ),
-        headlineMedium: GoogleFonts.fredoka(
+        headlineMedium: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 20,
           fontWeight: FontWeight.w400,
           color: textColor,
         ),
-        headlineSmall: GoogleFonts.fredoka(
+        headlineSmall: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 18,
           fontWeight: FontWeight.w400,
           color: textColor,
         ),
-        titleLarge: GoogleFonts.nunito(
+        titleLarge: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
-        titleMedium: GoogleFonts.nunito(
+        titleMedium: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
-        titleSmall: GoogleFonts.nunito(
+        titleSmall: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
-        bodyLarge: GoogleFonts.nunito(
+        bodyLarge: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 16,
           fontWeight: FontWeight.w500,
           color: textColor,
         ),
-        bodyMedium: GoogleFonts.nunito(
+        bodyMedium: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: textColor,
         ),
-        bodySmall: GoogleFonts.nunito(
+        bodySmall: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: textColor,
         ),
-        labelLarge: GoogleFonts.nunito(
+        labelLarge: const TextStyle(
+          fontFamily: 'Nunito',
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: textColor,
@@ -92,8 +104,10 @@ class GameTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.fredoka(
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Fredoka',
           fontSize: 22,
+          fontWeight: FontWeight.w400,
           color: textColor,
         ),
         iconTheme: const IconThemeData(
