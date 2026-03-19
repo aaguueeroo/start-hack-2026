@@ -343,6 +343,25 @@ class GameEngine {
     return _assetCalculationEngine.saleValue(asset);
   }
 
+  /// Deducts [amount] from cash. Returns true if successful, false if insufficient funds.
+  bool spendCash(int amount) {
+    if (_state == null || amount < 0) return false;
+    if (_state!.cash < amount) return false;
+    _state = GameState(
+      character: _state!.character,
+      stats: _state!.stats,
+      cash: _state!.cash - amount,
+      holdings: _state!.holdings,
+      itemSlots: _state!.itemSlots,
+      portfolioHistory: _state!.portfolioHistory,
+      currentYear: _state!.currentYear,
+      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: _state!.assetAllocationPercent,
+    );
+    return true;
+  }
+
   void sellAsset(String assetId) {
     if (_state == null) return;
     final asset = _state!.holdings[assetId];

@@ -34,9 +34,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
         title: const Text('Simulation'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            context.read<StoreController>().refreshFromGameState();
-            context.pop();
+          onPressed: () async {
+            await context.read<StoreController>().refreshFromGameState();
+            if (context.mounted) context.pop();
           },
         ),
         actions: [
@@ -69,13 +69,13 @@ class _SimulationScreenState extends State<SimulationScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: SpacingConstants.md),
-                      GameButton(
+                        GameButton(
                         label: 'Back to Store',
-                        onPressed: () {
-                          context
+                        onPressed: () async {
+                          await context
                               .read<StoreController>()
                               .refreshFromGameState();
-                          context.pop();
+                          if (context.mounted) context.pop();
                         },
                         variant: GameButtonVariant.primary,
                       ),
@@ -168,10 +168,11 @@ class _SimulationScreenState extends State<SimulationScreen> {
                           icon: controller.hasWon
                               ? Icons.emoji_events
                               : Icons.store,
-                          onPressed: () {
-                            context
+                          onPressed: () async {
+                            await context
                                 .read<StoreController>()
                                 .refreshFromGameState();
+                            if (!context.mounted) return;
                             if (controller.hasWon) {
                               context.pushReplacement('/game-won');
                             } else {

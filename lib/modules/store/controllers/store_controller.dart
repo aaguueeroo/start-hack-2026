@@ -10,6 +10,10 @@ import 'package:start_hack_2026/engine/game_engine.dart';
 /// Allocation percentage per asset buy (10% of total capital).
 const int _allocationPercentPerBuy = 10;
 
+/// Reshuffle cost progression: 1000 -> 2000 -> 5000 (capped).
+const List<int> _reshuffleCosts = [1000, 2000, 5000];
+const int _maxReshuffleCost = 5000;
+
 class StoreController extends ChangeNotifier {
   StoreController({
     required GameRepository gameRepository,
@@ -25,6 +29,8 @@ class StoreController extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   int _allocatedPercent = 0;
+  final Set<String> _purchasedLearningCardIds = {};
+  int _reshuffleCount = 0;
 
   List<StatSchema> get statsSchema => _statsSchema;
   List<StoreItem> get storeOffer => _storeOffer;
@@ -45,7 +51,9 @@ class StoreController extends ChangeNotifier {
   Future<void> loadStoreData() async {
     _isLoading = true;
     _errorMessage = null;
-    _allocatedPercent = 0;
+    _purchasedLearningCardIds.clear();
+    _reshuffleCount = 0;
+    _syncAllocatedPercent();
     notifyListeners();
     try {
       _statsSchema = await _gameRepository.getStatsSchema();
@@ -58,6 +66,40 @@ class StoreController extends ChangeNotifier {
       }
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _syncAllocatedPercent() {
+    var total = 0;
+    for (final id in _gameEngine.currentHoldings.keys) {
+      total += _gameEngine.getAssetAllocationPercent(id);
+    }
+    _allocatedPercent = total;
+  }
+
+  int get reshuffleCost {
+    if (_reshuffleCount >= _reshuffleCosts.length) {
+      return _maxReshuffleCost;
+    }
+    return _reshuffleCosts[_reshuffleCount];
+  }
+
+  bool get canReshuffle => _gameEngine.currentCash >= reshuffleCost;
+
+  Future<void> reshuffleStoreOffer() async {
+    final cost = reshuffleCost;
+    if (_gameEngine.currentCash < cost) return;
+    try {
+      final newOffer = await _gameRepository.getStoreOffer();
+      if (!_gameEngine.spendCash(cost)) return;
+      _reshuffleCount++;
+      _storeOffer = newOffer;
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to reshuffle store: $e');
+      }
       notifyListeners();
     }
   }
@@ -76,6 +118,7 @@ class StoreController extends ChangeNotifier {
   bool canBuy(StoreItem item) {
     switch (item) {
       case StoreItemItem():
+        if (isLearningCardPurchased(item)) return false;
         return _gameEngine.validatePurchase(item, _statsSchema);
       case StoreItemAsset():
         return _canBuyAsset(item);
@@ -101,6 +144,7 @@ class StoreController extends ChangeNotifier {
   void buyItem(StoreItemItem item) {
     if (!canBuy(item)) return;
     _gameEngine.applyItemPurchase(item, _statsSchema);
+    _purchasedLearningCardIds.add('${item.id}_${item.level}');
     notifyListeners();
   }
 
@@ -136,7 +180,9 @@ class StoreController extends ChangeNotifier {
   }
 
   void sellAsset(String assetId) {
+    final allocation = _gameEngine.getAssetAllocationPercent(assetId);
     _gameEngine.sellAsset(assetId);
+    _allocatedPercent = (_allocatedPercent - allocation).clamp(0, 100);
     notifyListeners();
   }
 
@@ -144,13 +190,19 @@ class StoreController extends ChangeNotifier {
   int getAssetAllocationPercent(String assetId) =>
       _gameEngine.getAssetAllocationPercent(assetId);
 
+  bool isLearningCardPurchased(StoreItemItem item) =>
+      _purchasedLearningCardIds.contains('${item.id}_${item.level}');
+
   /// Current total return for an owned asset (from centralized asset engine).
   double getAssetTotalReturnPercent(PortfolioAsset asset) {
     return _gameEngine.assetCalculationEngine.totalReturnPercent(asset);
   }
 
   /// Call when game state may have changed externally (e.g. after simulation).
-  void refreshFromGameState() {
+  Future<void> refreshFromGameState() async {
+    _syncAllocatedPercent();
+    _reshuffleCount = 0;
+    await refreshStoreOffer();
     notifyListeners();
   }
 

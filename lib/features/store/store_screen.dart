@@ -196,6 +196,11 @@ class _StoreScreenState extends State<StoreScreen> {
                           storeOffer: controller.storeOffer,
                           canBuy: controller.canBuy,
                           onPurchase: controller.purchase,
+                          onReshuffle: controller.reshuffleStoreOffer,
+                          reshuffleCost: controller.reshuffleCost,
+                          canReshuffle: controller.canReshuffle,
+                          isLearningCardPurchased:
+                              controller.isLearningCardPurchased,
                           statsSchema: controller.statsSchema,
                           totalCapital: controller.currentPortfolioValue,
                           baselineValue: _getBaselineValueForComparison(
@@ -758,6 +763,10 @@ class _BuySection extends StatelessWidget {
     required this.storeOffer,
     required this.canBuy,
     required this.onPurchase,
+    required this.onReshuffle,
+    required this.reshuffleCost,
+    required this.canReshuffle,
+    required this.isLearningCardPurchased,
     required this.statsSchema,
     required this.totalCapital,
     required this.baselineValue,
@@ -767,6 +776,10 @@ class _BuySection extends StatelessWidget {
   final List<StoreItem> storeOffer;
   final bool Function(StoreItem) canBuy;
   final void Function(StoreItem item) onPurchase;
+  final Future<void> Function() onReshuffle;
+  final int reshuffleCost;
+  final bool canReshuffle;
+  final bool Function(StoreItemItem item) isLearningCardPurchased;
   final List<StatSchema> statsSchema;
   final double totalCapital;
   final double? baselineValue;
@@ -829,28 +842,41 @@ class _BuySection extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Flexible(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.pie_chart_outline,
-                    color: GameThemeConstants.warningLight,
-                    size: 24,
-                  ),
-                  const SizedBox(width: SpacingConstants.sm),
-                  Flexible(
-                    child: Text(
-                      '$remainingAllocationPercent% to allocate',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Icon(
+                        Icons.pie_chart_outline,
+                        color: GameThemeConstants.warningLight,
+                        size: 24,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      const SizedBox(width: SpacingConstants.sm),
+                      Flexible(
+                        child: Text(
+                          '$remainingAllocationPercent% to allocate',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.shuffle),
+                  onPressed: canReshuffle ? () => onReshuffle() : null,
+                  tooltip: canReshuffle
+                      ? 'Reshuffle cards (\$$reshuffleCost)'
+                      : 'Reshuffle cards (\$$reshuffleCost) - need more cash',
+                ),
+              ],
             ),
           ],
         ),
@@ -859,6 +885,7 @@ class _BuySection extends StatelessWidget {
           items: storeOffer,
           canBuy: canBuy,
           onPurchase: (item) => onPurchase(item),
+          isLearningCardPurchased: isLearningCardPurchased,
           statsSchema: statsSchema,
         ),
       ],
@@ -871,12 +898,14 @@ class _StoreGrid extends StatelessWidget {
     required this.items,
     required this.canBuy,
     required this.onPurchase,
+    required this.isLearningCardPurchased,
     required this.statsSchema,
   });
 
   final List<StoreItem> items;
   final bool Function(StoreItem) canBuy;
   final void Function(StoreItem item) onPurchase;
+  final bool Function(StoreItemItem item) isLearningCardPurchased;
   final List<StatSchema> statsSchema;
 
   @override
@@ -893,10 +922,14 @@ class _StoreGrid extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
+        final isPurchased = item is StoreItemItem
+            ? isLearningCardPurchased(item)
+            : false;
         return _StoreItemCard(
           item: item,
           canBuy: canBuy(item),
           onBuy: () => onPurchase(item),
+          isGreyedOut: isPurchased,
           statsSchema: statsSchema,
         );
       },
@@ -1790,12 +1823,14 @@ class _StoreItemCard extends StatelessWidget {
     required this.canBuy,
     required this.onBuy,
     required this.statsSchema,
+    this.isGreyedOut = false,
   });
 
   final StoreItem item;
   final bool canBuy;
   final VoidCallback onBuy;
   final List<StatSchema> statsSchema;
+  final bool isGreyedOut;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -1806,6 +1841,9 @@ class _StoreItemCard extends StatelessWidget {
   }
 
   Color _getCardBackgroundColor() {
+    if (isGreyedOut) {
+      return Colors.grey.shade400;
+    }
     if (item is StoreItemAsset) {
       return GameThemeConstants.creamSurface;
     }
@@ -1814,8 +1852,10 @@ class _StoreItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GameCard(
-      backgroundColor: _getCardBackgroundColor(),
+    return Opacity(
+      opacity: isGreyedOut ? 0.6 : 1.0,
+      child: GameCard(
+        backgroundColor: _getCardBackgroundColor(),
       padding: const EdgeInsets.all(SpacingConstants.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1954,12 +1994,12 @@ class _StoreItemCard extends StatelessWidget {
           ),
           item is StoreItemAsset
               ? _AnimatedInvestButton(
-                  canBuy: canBuy,
+                  canBuy: canBuy && !isGreyedOut,
                   onBuy: onBuy,
                 )
               : GameButton(
                   label: 'Buy',
-                  onPressed: canBuy ? onBuy : null,
+                  onPressed: (canBuy && !isGreyedOut) ? onBuy : null,
                   variant: GameButtonVariant.success,
                   isFullWidth: true,
                   padding: const EdgeInsets.symmetric(
@@ -1987,6 +2027,7 @@ class _StoreItemCard extends StatelessWidget {
                 ),
         ],
       ),
+    ),
     );
   }
 }
