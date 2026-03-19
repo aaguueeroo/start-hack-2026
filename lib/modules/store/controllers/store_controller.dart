@@ -7,6 +7,9 @@ import 'package:start_hack_2026/domain/entities/store_item.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 
+/// Allocation percentage per asset buy (10% of total capital).
+const int _allocationPercentPerBuy = 10;
+
 class StoreController extends ChangeNotifier {
   StoreController({
     required GameRepository gameRepository,
@@ -21,11 +24,13 @@ class StoreController extends ChangeNotifier {
   List<StoreItem> _storeOffer = [];
   bool _isLoading = true;
   String? _errorMessage;
+  int _allocatedPercent = 0;
 
   List<StatSchema> get statsSchema => _statsSchema;
   List<StoreItem> get storeOffer => _storeOffer;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  int get remainingAllocationPercent => 100 - _allocatedPercent;
 
   Character? get character => _gameEngine.state?.character;
   int get cash => _gameEngine.currentCash;
@@ -40,6 +45,7 @@ class StoreController extends ChangeNotifier {
   Future<void> loadStoreData() async {
     _isLoading = true;
     _errorMessage = null;
+    _allocatedPercent = 0;
     notifyListeners();
     try {
       _statsSchema = await _gameRepository.getStatsSchema();
@@ -68,7 +74,28 @@ class StoreController extends ChangeNotifier {
   }
 
   bool canBuy(StoreItem item) {
-    return _gameEngine.validatePurchase(item, _statsSchema);
+    switch (item) {
+      case StoreItemItem():
+        return _gameEngine.validatePurchase(item, _statsSchema);
+      case StoreItemAsset():
+        return _canBuyAsset(item);
+    }
+  }
+
+  bool _canBuyAsset(StoreItemAsset asset) {
+    if (remainingAllocationPercent < _allocationPercentPerBuy) return false;
+    final totalCapital = _gameEngine.currentPortfolioValue;
+    final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
+    if (_gameEngine.currentCash < amountToSpend) return false;
+    final quantity = (amountToSpend / asset.price).floor();
+    if (quantity < 1) return false;
+    // Need a free asset slot unless adding to existing holding
+    final hasExisting = _gameEngine.currentHoldings.containsKey(asset.id);
+    if (!hasExisting &&
+        _gameEngine.holdingsCount >= _gameEngine.assetSlots) {
+      return false;
+    }
+    return true;
   }
 
   void buyItem(StoreItemItem item) {
@@ -77,33 +104,25 @@ class StoreController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void buyAsset(StoreItemAsset asset, {int quantity = 1}) {
-    if (!canBuy(asset)) return;
+  void buyAsset(StoreItemAsset asset) {
+    if (!_canBuyAsset(asset)) return;
+    final totalCapital = _gameEngine.currentPortfolioValue;
+    final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
+    final quantity = (amountToSpend / asset.price).floor();
+    if (quantity < 1) return;
     _gameEngine.applyAssetPurchase(asset, quantity);
+    _allocatedPercent += _allocationPercentPerBuy;
     notifyListeners();
   }
 
-  Future<void> purchase(StoreItem item, {int? replaceAtIndex}) async {
+  void purchase(StoreItem item) {
     switch (item) {
       case StoreItemItem():
         buyItem(item);
       case StoreItemAsset():
         buyAsset(item);
     }
-    if (replaceAtIndex != null &&
-        replaceAtIndex >= 0 &&
-        replaceAtIndex < _storeOffer.length) {
-      try {
-        final replacement = await _gameRepository.getRandomStoreItem();
-        _storeOffer = List<StoreItem>.from(_storeOffer);
-        _storeOffer[replaceAtIndex] = replacement;
-        notifyListeners();
-      } catch (e) {
-        if (kDebugMode) {
-          print('Failed to replace store item: $e');
-        }
-      }
-    }
+    // Cards do not disappear - no replacement
   }
 
   bool canCombineItems(int slotA, int slotB) {

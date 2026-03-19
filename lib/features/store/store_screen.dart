@@ -195,14 +195,14 @@ class _StoreScreenState extends State<StoreScreen> {
                         _BuySection(
                           storeOffer: controller.storeOffer,
                           canBuy: controller.canBuy,
-                          onPurchase: (item, index) =>
-                              controller.purchase(item, replaceAtIndex: index),
+                          onPurchase: controller.purchase,
                           statsSchema: controller.statsSchema,
                           totalCapital: controller.currentPortfolioValue,
                           baselineValue: _getBaselineValueForComparison(
                             controller,
                           ),
-                          cash: controller.cash,
+                          remainingAllocationPercent:
+                              controller.remainingAllocationPercent,
                         ),
                         const SizedBox(height: SpacingConstants.lg),
                         _ItemSlotsSection(
@@ -214,6 +214,7 @@ class _StoreScreenState extends State<StoreScreen> {
                         const SizedBox(height: SpacingConstants.lg),
                         _AssetSlotsSection(
                           holdings: controller.holdings,
+                          currentPortfolioValue: controller.currentPortfolioValue,
                           onSell: controller.sellAsset,
                           statsSchema: controller.statsSchema,
                           getAssetTotalReturnPercent:
@@ -759,16 +760,16 @@ class _BuySection extends StatelessWidget {
     required this.statsSchema,
     required this.totalCapital,
     required this.baselineValue,
-    required this.cash,
+    required this.remainingAllocationPercent,
   });
 
   final List<StoreItem> storeOffer;
   final bool Function(StoreItem) canBuy;
-  final void Function(StoreItem item, int index) onPurchase;
+  final void Function(StoreItem item) onPurchase;
   final List<StatSchema> statsSchema;
   final double totalCapital;
   final double? baselineValue;
-  final int cash;
+  final int remainingAllocationPercent;
 
   @override
   Widget build(BuildContext context) {
@@ -830,28 +831,37 @@ class _BuySection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Buy Assets',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                'Buy Assets',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.monetization_on,
-                  color: GameThemeConstants.warningLight,
-                  size: 24,
-                ),
-                const SizedBox(width: SpacingConstants.sm),
-                Text(
-                  '$cash',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(
+                    Icons.pie_chart_outline,
+                    color: GameThemeConstants.warningLight,
+                    size: 24,
                   ),
-                ),
-              ],
+                  const SizedBox(width: SpacingConstants.sm),
+                  Flexible(
+                    child: Text(
+                      '$remainingAllocationPercent% to allocate',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -859,7 +869,7 @@ class _BuySection extends StatelessWidget {
         _StoreGrid(
           items: storeOffer,
           canBuy: canBuy,
-          onPurchase: onPurchase,
+          onPurchase: (item) => onPurchase(item),
           statsSchema: statsSchema,
         ),
       ],
@@ -877,7 +887,7 @@ class _StoreGrid extends StatelessWidget {
 
   final List<StoreItem> items;
   final bool Function(StoreItem) canBuy;
-  final void Function(StoreItem item, int index) onPurchase;
+  final void Function(StoreItem item) onPurchase;
   final List<StatSchema> statsSchema;
 
   @override
@@ -887,7 +897,7 @@ class _StoreGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.55,
         crossAxisSpacing: SpacingConstants.md,
         mainAxisSpacing: SpacingConstants.md,
       ),
@@ -897,7 +907,7 @@ class _StoreGrid extends StatelessWidget {
         return _StoreItemCard(
           item: item,
           canBuy: canBuy(item),
-          onBuy: () => onPurchase(item, index),
+          onBuy: () => onPurchase(item),
           statsSchema: statsSchema,
         );
       },
@@ -941,7 +951,7 @@ class _ItemSlotsSection extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 1,
+            childAspectRatio: 1.1,
             crossAxisSpacing: SpacingConstants.sm,
             mainAxisSpacing: SpacingConstants.sm,
           ),
@@ -1121,29 +1131,37 @@ class _ItemSlotCard extends StatelessWidget {
                   color: GameThemeConstants.outlineColorLight,
                 ),
               )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    owned!.icon.toIconData(),
-                    size: 36,
-                    color: GameThemeConstants.primaryDark,
-                  ),
-                  const SizedBox(height: SpacingConstants.xs),
-                  Text(
-                    'L${owned!.level}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      owned!.icon.toIconData(),
+                      size: 28,
+                      color: GameThemeConstants.primaryDark,
                     ),
-                  ),
-                  Text(
-                    owned!.name,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    const SizedBox(height: SpacingConstants.xs),
+                    Text(
+                      'L${owned!.level}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      owned!.name,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
       ),
     );
@@ -1153,12 +1171,14 @@ class _ItemSlotCard extends StatelessWidget {
 class _AssetSlotsSection extends StatefulWidget {
   const _AssetSlotsSection({
     required this.holdings,
+    required this.currentPortfolioValue,
     required this.onSell,
     required this.statsSchema,
     required this.getAssetTotalReturnPercent,
   });
 
   final Map<String, PortfolioAsset> holdings;
+  final double currentPortfolioValue;
   final void Function(String assetId) onSell;
   final List<StatSchema> statsSchema;
   final double Function(PortfolioAsset asset) getAssetTotalReturnPercent;
@@ -1230,24 +1250,34 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              childAspectRatio: 1,
-              crossAxisSpacing: SpacingConstants.sm,
-              mainAxisSpacing: SpacingConstants.sm,
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final crossCount = width > 400 ? 5 : (width > 300 ? 4 : 3);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossCount,
+                  childAspectRatio: 1.15,
+                  crossAxisSpacing: SpacingConstants.sm,
+                  mainAxisSpacing: SpacingConstants.sm,
+                ),
             itemCount: widget.holdings.length,
             itemBuilder: (context, index) {
               final asset = widget.holdings.values.elementAt(index);
+              final allocationPercent = widget.currentPortfolioValue > 0
+                  ? (asset.totalValue / widget.currentPortfolioValue) * 100
+                  : 0.0;
               return _AssetSlotCard(
                 key: _getKeyForAsset(asset.assetId),
                 asset: asset,
                 totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
+                allocationPercent: allocationPercent,
                 onTap: () => _showAssetTooltip(context, asset),
               );
+            },
+          );
             },
           ),
       ],
@@ -1569,11 +1599,13 @@ class _AssetSlotCard extends StatelessWidget {
     super.key,
     required this.asset,
     required this.totalReturnPercent,
+    required this.allocationPercent,
     required this.onTap,
   });
 
   final PortfolioAsset asset;
   final double totalReturnPercent;
+  final double allocationPercent;
   final VoidCallback onTap;
 
   @override
@@ -1581,40 +1613,54 @@ class _AssetSlotCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GameCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              asset.icon.toIconData(),
-              size: 24,
-              color: GameThemeConstants.primaryDark,
-            ),
-            const SizedBox(height: SpacingConstants.xs),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  totalReturnPercent >= 0
-                      ? Icons.arrow_drop_up
-                      : Icons.arrow_drop_down,
-                  size: 18,
-                  color: totalReturnPercent >= 0
-                      ? GameThemeConstants.statPositive
-                      : GameThemeConstants.statNegative,
-                ),
-                Text(
-                  '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        padding: const EdgeInsets.all(SpacingConstants.xs),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                asset.icon.toIconData(),
+                size: 22,
+                color: GameThemeConstants.primaryDark,
+              ),
+              const SizedBox(height: SpacingConstants.xs),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    totalReturnPercent >= 0
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
+                    size: 16,
                     color: totalReturnPercent >= 0
                         ? GameThemeConstants.statPositive
                         : GameThemeConstants.statNegative,
-                    fontWeight: FontWeight.w600,
                   ),
+                  Text(
+                    '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: totalReturnPercent >= 0
+                          ? GameThemeConstants.statPositive
+                          : GameThemeConstants.statNegative,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${allocationPercent.toStringAsFixed(0)}% alloc.',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: GameThemeConstants.outlineColorLight,
+                  fontSize: 9,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1664,6 +1710,92 @@ class _StatRow extends StatelessWidget {
   }
 }
 
+class _AnimatedInvestButton extends StatefulWidget {
+  const _AnimatedInvestButton({
+    required this.canBuy,
+    required this.onBuy,
+  });
+
+  final bool canBuy;
+  final VoidCallback onBuy;
+
+  @override
+  State<_AnimatedInvestButton> createState() => _AnimatedInvestButtonState();
+}
+
+class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 50),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTap() {
+    if (!widget.canBuy) return;
+    widget.onBuy();
+    _controller.forward().then((_) {
+      if (mounted) _controller.reverse();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: IgnorePointer(
+          child: GameButton(
+            label: 'Invest',
+            onPressed: widget.canBuy ? () {} : null,
+            variant: GameButtonVariant.success,
+            isFullWidth: true,
+            padding: const EdgeInsets.symmetric(
+              horizontal: SpacingConstants.sm,
+              vertical: SpacingConstants.xs,
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.pie_chart_outline,
+                  size: 20,
+                  color: GameThemeConstants.warningLight,
+                ),
+                const SizedBox(width: SpacingConstants.xs),
+                const Text(
+                  '10%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StoreItemCard extends StatelessWidget {
   const _StoreItemCard({
     required this.item,
@@ -1696,135 +1828,175 @@ class _StoreItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GameCard(
       backgroundColor: _getCardBackgroundColor(),
+      padding: const EdgeInsets.all(SpacingConstants.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 1.5,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final size = constraints.maxWidth;
-                    return Center(
-                      child: Icon(
-                        item.icon.toIconData(),
-                        size: size * 0.6,
-                        color: GameThemeConstants.primaryDark,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              if (item is StoreItemItem)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: SpacingConstants.xs,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: GameThemeConstants.primaryDark,
-                      borderRadius: BorderRadius.circular(
-                        GameThemeConstants.radiusSmall,
-                      ),
-                    ),
-                    child: Text(
-                      'L${(item as StoreItemItem).level}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          Text(
-            item.name,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          switch (item) {
-            StoreItemItem(:final statEffects) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: statEffects.entries
-                  .where((e) => e.key != 'money')
-                  .map(
-                    (e) => Text(
-                      '${_getStatDisplayName(e.key)}: ${e.value > 0 ? '+' : ''}${e.value.toStringAsFixed(e.value == e.value.roundToDouble() ? 0 : 1)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: e.value > 0
-                            ? GameThemeConstants.statPositive
-                            : e.value < 0
-                            ? GameThemeConstants.statNegative
-                            : null,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )
-                  .toList(),
-            ),
-            StoreItemAsset(
-              :final expectedReturn,
-              :final volatility,
-              :final managementCost,
-            ) =>
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Return: ${expectedReturn.toStringAsFixed(1)}%',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  Text(
-                    'Vol: ${volatility.toStringAsFixed(1)}%',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  if (managementCost > 0)
-                    Text(
-                      'Mgmt: ${managementCost.toStringAsFixed(2)}%',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                ],
-              ),
-          },
-          const Spacer(),
-          GameButton(
-            label: 'Buy',
-            onPressed: canBuy ? onBuy : null,
-            variant: GameButtonVariant.success,
-            isFullWidth: true,
-            padding: const EdgeInsets.symmetric(
-              horizontal: SpacingConstants.md,
-              vertical: SpacingConstants.sm,
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          AspectRatio(
+            aspectRatio: 1.8,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Icon(
-                  Icons.monetization_on,
-                  size: 20,
-                  color: GameThemeConstants.warningLight,
-                ),
-                const SizedBox(width: SpacingConstants.xs),
-                Text(
-                  '${item.price}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                Center(
+                  child: Icon(
+                    item.icon.toIconData(),
+                    size: 28,
+                    color: GameThemeConstants.primaryDark,
                   ),
                 ),
+                if (item is StoreItemItem)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: SpacingConstants.xs,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: GameThemeConstants.primaryDark,
+                        borderRadius: BorderRadius.circular(
+                          GameThemeConstants.radiusSmall,
+                        ),
+                      ),
+                      child: Text(
+                        'L${(item as StoreItemItem).level}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
+          Expanded(
+            flex: 1,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.name,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: SpacingConstants.xs),
+                  switch (item) {
+                    StoreItemItem(:final statEffects) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: statEffects.entries
+                            .where((e) => e.key != 'money')
+                            .map(
+                              (e) => Text(
+                                '${_getStatDisplayName(e.key)}: ${e.value > 0 ? '+' : ''}${e.value.toStringAsFixed(e.value == e.value.roundToDouble() ? 0 : 1)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontSize: 11,
+                                      color: e.value > 0
+                                          ? GameThemeConstants.statPositive
+                                          : e.value < 0
+                                              ? GameThemeConstants.statNegative
+                                              : null,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    StoreItemAsset(
+                      :final expectedReturn,
+                      :final volatility,
+                      :final managementCost,
+                    ) =>
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ret: ${expectedReturn.toStringAsFixed(1)}%',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Vol: ${volatility.toStringAsFixed(1)}%',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (managementCost > 0)
+                            Text(
+                              'Mgmt: ${managementCost.toStringAsFixed(2)}%',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                  },
+                ],
+              ),
+            ),
+          ),
+          item is StoreItemAsset
+              ? _AnimatedInvestButton(
+                  canBuy: canBuy,
+                  onBuy: onBuy,
+                )
+              : GameButton(
+                  label: 'Buy',
+                  onPressed: canBuy ? onBuy : null,
+                  variant: GameButtonVariant.success,
+                  isFullWidth: true,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SpacingConstants.sm,
+                    vertical: SpacingConstants.xs,
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        size: 20,
+                        color: GameThemeConstants.warningLight,
+                      ),
+                      const SizedBox(width: SpacingConstants.xs),
+                      Text(
+                        '${item.price}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ],
       ),
     );
