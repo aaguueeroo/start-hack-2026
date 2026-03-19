@@ -117,7 +117,6 @@ class _StoreScreenState extends State<StoreScreen> {
                   child: IconButton(
                     icon: const Icon(Icons.show_chart),
                     onPressed: () {},
-                    tooltip: 'Hold to view portfolio evolution',
                   ),
                 ),
               ),
@@ -132,7 +131,6 @@ class _StoreScreenState extends State<StoreScreen> {
                   child: IconButton(
                     icon: const Icon(Icons.bar_chart),
                     onPressed: () {},
-                    tooltip: 'Hold to view stats',
                   ),
                 ),
               ),
@@ -292,6 +290,10 @@ class _StatsOverlayState extends State<_StatsOverlay> {
               final screenWidth = MediaQuery.of(context).size.width;
               final popupWidth = screenWidth - (SpacingConstants.md * 2);
               const left = SpacingConstants.md;
+              final arrowCenterX =
+                  _buttonPosition!.dx +
+                  _buttonSize!.width / 2 -
+                  left;
               return Positioned(
                 left: left,
                 top:
@@ -299,7 +301,11 @@ class _StatsOverlayState extends State<_StatsOverlay> {
                     _buttonSize!.height +
                     SpacingConstants.sm,
                 width: popupWidth,
-                child: _StatsPopup(stats: widget.stats, schema: widget.schema),
+                child: _StatsPopup(
+                  stats: widget.stats,
+                  schema: widget.schema,
+                  arrowCenterX: arrowCenterX,
+                ),
               );
             },
           ),
@@ -328,10 +334,15 @@ const _statIcons = <String, IconData>{
 };
 
 class _StatsPopup extends StatelessWidget {
-  const _StatsPopup({required this.stats, required this.schema});
+  const _StatsPopup({
+    required this.stats,
+    required this.schema,
+    required this.arrowCenterX,
+  });
 
   final Map<String, num> stats;
   final List<StatSchema> schema;
+  final double arrowCenterX;
 
   @override
   Widget build(BuildContext context) {
@@ -359,11 +370,15 @@ class _StatsPopup extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CustomPaint(
-              size: const Size(24, 12),
-              painter: _PeakPainter(
-                color: GameThemeConstants.creamSurface,
-                borderColor: GameThemeConstants.outlineColor,
+            SizedBox(
+              height: 12,
+              child: CustomPaint(
+                painter: _TooltipArrowPainter(
+                  color: GameThemeConstants.creamSurface,
+                  borderColor: GameThemeConstants.outlineColor,
+                  arrowCenterX: arrowCenterX,
+                  pointingDown: false,
+                ),
               ),
             ),
             Container(
@@ -405,11 +420,15 @@ class _StatsPopup extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CustomPaint(
-            size: const Size(24, 12),
-            painter: _PeakPainter(
-              color: GameThemeConstants.creamSurface,
-              borderColor: GameThemeConstants.outlineColor,
+          SizedBox(
+            height: 12,
+            child: CustomPaint(
+              painter: _TooltipArrowPainter(
+                color: GameThemeConstants.creamSurface,
+                borderColor: GameThemeConstants.outlineColor,
+                arrowCenterX: arrowCenterX,
+                pointingDown: false,
+              ),
             ),
           ),
           Container(
@@ -573,6 +592,10 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
                 SpacingConstants.md,
                 screenHeight - popupHeight - SpacingConstants.md,
               );
+              final arrowCenterX =
+                  _buttonPosition!.dx +
+                  _buttonSize!.width / 2 -
+                  left;
               return Positioned(
                 left: left,
                 top: clampedTop,
@@ -582,6 +605,7 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
                   portfolioHistory: widget.portfolioHistory,
                   currentPortfolioValue: widget.currentPortfolioValue,
                   currentYear: widget.currentYear,
+                  arrowCenterX: arrowCenterX,
                 ),
               );
             },
@@ -597,11 +621,13 @@ class _PortfolioPopup extends StatelessWidget {
     required this.portfolioHistory,
     required this.currentPortfolioValue,
     required this.currentYear,
+    required this.arrowCenterX,
   });
 
   final List<PortfolioHistoryPoint> portfolioHistory;
   final double currentPortfolioValue;
   final int currentYear;
+  final double arrowCenterX;
 
   List<PortfolioHistoryPoint> _buildDataPoints() {
     final points = List<PortfolioHistoryPoint>.from(portfolioHistory);
@@ -628,11 +654,15 @@ class _PortfolioPopup extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CustomPaint(
-            size: const Size(24, 12),
-            painter: _PeakPainter(
-              color: GameThemeConstants.creamSurface,
-              borderColor: GameThemeConstants.outlineColor,
+          SizedBox(
+            height: 12,
+            child: CustomPaint(
+              painter: _TooltipArrowPainter(
+                color: GameThemeConstants.creamSurface,
+                borderColor: GameThemeConstants.outlineColor,
+                arrowCenterX: arrowCenterX,
+                pointingDown: false,
+              ),
             ),
           ),
           Container(
@@ -720,33 +750,6 @@ class _PortfolioEmptyState extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PeakPainter extends CustomPainter {
-  _PeakPainter({required this.color, required this.borderColor});
-
-  final Color color;
-  final Color borderColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width / 2, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = GameThemeConstants.outlineThickness,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BuySection extends StatelessWidget {
@@ -1358,17 +1361,11 @@ class _AssetTooltipPopup extends StatelessWidget {
       MediaQuery.of(context).size.width - tooltipWidth - SpacingConstants.md,
     );
     final arrowCenterX = cardCenterX - tooltipLeft;
-    const estimatedTooltipHeight = 220.0;
     final showAbove = cardPosition.dy > screenHeight / 2;
-    final tooltipTop = showAbove
-        ? (cardPosition.dy - spacing - estimatedTooltipHeight).clamp(
-            SpacingConstants.md,
-            screenHeight - estimatedTooltipHeight,
-          )
-        : cardPosition.dy + cardSize.height + spacing;
     return Positioned(
       left: tooltipLeft,
-      top: showAbove ? tooltipTop : tooltipTop,
+      top: showAbove ? null : cardPosition.dy + cardSize.height + spacing,
+      bottom: showAbove ? screenHeight - cardPosition.dy + spacing : null,
       width: tooltipWidth,
       child: Material(
         color: Colors.transparent,

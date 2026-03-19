@@ -16,10 +16,7 @@ class HomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              GameThemeConstants.creamBackground,
-              Color(0xFFF5EDE0),
-            ],
+            colors: [GameThemeConstants.creamBackground, Color(0xFFF5EDE0)],
           ),
         ),
         child: SafeArea(
@@ -29,32 +26,31 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
-                Text(
-                  AppConstants.appName,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        color: GameThemeConstants.primaryDark,
-                        shadows: [
-                          Shadow(
-                            color: GameThemeConstants.outlineColor,
-                            offset: const Offset(2, 2),
-                            blurRadius: 0,
+                Image.asset(
+                  'assets/images/logo_home.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Text(
+                      AppConstants.appName,
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(
+                            color: GameThemeConstants.primaryDark,
+                            shadows: [
+                              Shadow(
+                                color: GameThemeConstants.outlineColor,
+                                offset: const Offset(2, 2),
+                                blurRadius: 0,
+                              ),
+                              Shadow(
+                                color: GameThemeConstants.outlineColor,
+                                offset: const Offset(-1, -1),
+                                blurRadius: 0,
+                              ),
+                            ],
                           ),
-                          Shadow(
-                            color: GameThemeConstants.outlineColor,
-                            offset: const Offset(-1, -1),
-                            blurRadius: 0,
-                          ),
-                        ],
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: SpacingConstants.sm),
-                Text(
-                  'Learn investments through play',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: GameThemeConstants.outlineColorLight,
-                      ),
-                  textAlign: TextAlign.center,
+                      textAlign: TextAlign.center,
+                    );
+                  },
                 ),
                 const Spacer(),
                 GameButton(
