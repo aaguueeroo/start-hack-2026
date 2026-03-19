@@ -40,7 +40,7 @@ lib/
 - **monthlySavings** – Amount saved and invested each month (paid at end of month)
 - **riskTolerance** – Affects forced selling during volatility
 - **return**, **volatility** – Portfolio metrics from holdings
-- Other: financialKnowledge, assetSlots, emotionalReaction, knowledge, savingsRate, behavioralBias
+- Other: financialKnowledge, assetSlots, knowledgeSlots (item capacity per character), emotionalReaction, knowledge, savingsRate, behavioralBias
 
 ### Data (JSON in `assets/data/`)
 

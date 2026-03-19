@@ -195,12 +195,13 @@ class _StoreScreenState extends State<StoreScreen> {
                         _BuySection(
                           storeOffer: controller.storeOffer,
                           canBuy: controller.canBuy,
-                          onPurchase: controller.purchase,
+                          onPurchase: (item, offerIndex) => controller.purchase(
+                                item,
+                                offerIndex: offerIndex,
+                              ),
                           onReshuffle: controller.reshuffleStoreOffer,
                           reshuffleCost: controller.reshuffleCost,
                           canReshuffle: controller.canReshuffle,
-                          isLearningCardPurchased:
-                              controller.isLearningCardPurchased,
                           statsSchema: controller.statsSchema,
                           totalCapital: controller.currentPortfolioValue,
                           baselineValue: _getBaselineValueForComparison(
@@ -334,6 +335,7 @@ class _StatsOverlayState extends State<_StatsOverlay> {
 const _statIcons = <String, IconData>{
   'money': Icons.attach_money,
   'assetSlots': Icons.grid_view,
+  'knowledgeSlots': Icons.menu_book,
   'monthlySavings': Icons.savings,
   'return': Icons.trending_up,
   'volatility': Icons.show_chart,
@@ -776,7 +778,6 @@ class _BuySection extends StatelessWidget {
     required this.onReshuffle,
     required this.reshuffleCost,
     required this.canReshuffle,
-    required this.isLearningCardPurchased,
     required this.statsSchema,
     required this.totalCapital,
     required this.baselineValue,
@@ -785,11 +786,10 @@ class _BuySection extends StatelessWidget {
 
   final List<StoreItem> storeOffer;
   final bool Function(StoreItem) canBuy;
-  final void Function(StoreItem item) onPurchase;
+  final bool Function(StoreItem item, int offerIndex) onPurchase;
   final Future<void> Function() onReshuffle;
   final int reshuffleCost;
   final bool canReshuffle;
-  final bool Function(StoreItemItem item) isLearningCardPurchased;
   final List<StatSchema> statsSchema;
   final double totalCapital;
   final double? baselineValue;
@@ -894,8 +894,7 @@ class _BuySection extends StatelessWidget {
         _StoreGrid(
           items: storeOffer,
           canBuy: canBuy,
-          onPurchase: (item) => onPurchase(item),
-          isLearningCardPurchased: isLearningCardPurchased,
+          onPurchase: onPurchase,
           statsSchema: statsSchema,
         ),
       ],
@@ -908,18 +907,31 @@ class _StoreGrid extends StatelessWidget {
     required this.items,
     required this.canBuy,
     required this.onPurchase,
-    required this.isLearningCardPurchased,
     required this.statsSchema,
   });
 
   final List<StoreItem> items;
   final bool Function(StoreItem) canBuy;
-  final void Function(StoreItem item) onPurchase;
-  final bool Function(StoreItemItem item) isLearningCardPurchased;
+  final bool Function(StoreItem item, int offerIndex) onPurchase;
   final List<StatSchema> statsSchema;
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: SpacingConstants.lg),
+        child: Center(
+          child: Text(
+            'Shelf cleared! Tap shuffle for a fresh set of cards.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: GameThemeConstants.outlineColorLight,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
+      );
+    }
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -932,15 +944,33 @@ class _StoreGrid extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        final isPurchased = item is StoreItemItem
-            ? isLearningCardPurchased(item)
-            : false;
-        return _StoreItemCard(
-          item: item,
-          canBuy: canBuy(item),
-          onBuy: () => onPurchase(item),
-          isGreyedOut: isPurchased,
-          statsSchema: statsSchema,
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 360),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: KeyedSubtree(
+            key: ValueKey<Object>(
+              '${item.runtimeType}_${item.id}_${identityHashCode(item)}',
+            ),
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 420),
+              curve: Curves.easeOutBack,
+              tween: Tween(begin: 0.88, end: 1.0),
+              builder: (context, scale, child) => Transform.scale(
+                scale: scale,
+                alignment: Alignment.center,
+                child: child,
+              ),
+              child: _StoreItemCard(
+                item: item,
+                canBuy: canBuy(item),
+                onBuy: () => onPurchase(item, index),
+                statsSchema: statsSchema,
+              ),
+            ),
+          ),
         );
       },
     );
@@ -970,6 +1000,13 @@ class _ItemSlotsSection extends StatelessWidget {
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        Text(
+          '${itemSlots.where((s) => s != null).length}/${itemSlots.length} slots · '
+          'Buy duplicates to fill empty slots or merge into a higher level',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: GameThemeConstants.outlineColorLight,
+          ),
         ),
         Text(
           'Drag an item onto a similar item of the same level to combine',
@@ -1157,10 +1194,23 @@ class _ItemSlotCard extends StatelessWidget {
             : null,
         child: owned == null
             ? Center(
-                child: Icon(
-                  Icons.add_circle_outline,
-                  size: 32,
-                  color: GameThemeConstants.outlineColorLight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      size: 28,
+                      color: GameThemeConstants.outlineColorLight,
+                    ),
+                    const SizedBox(height: SpacingConstants.xs),
+                    Text(
+                      'Empty',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: GameThemeConstants.outlineColorLight,
+                          ),
+                    ),
+                  ],
                 ),
               )
             : FittedBox(
@@ -1750,7 +1800,7 @@ class _AnimatedInvestButton extends StatefulWidget {
 
   final bool canBuy;
   final bool compact;
-  final VoidCallback onBuy;
+  final bool Function() onBuy;
 
   @override
   State<_AnimatedInvestButton> createState() => _AnimatedInvestButtonState();
@@ -1781,10 +1831,12 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
 
   void _onTap() {
     if (!widget.canBuy) return;
-    widget.onBuy();
-    _controller.forward().then((_) {
-      if (mounted) _controller.reverse();
-    });
+    final ok = widget.onBuy();
+    if (ok) {
+      _controller.forward().then((_) {
+        if (mounted) _controller.reverse();
+      });
+    }
   }
 
   @override
@@ -1844,14 +1896,12 @@ class _StoreItemCard extends StatelessWidget {
     required this.canBuy,
     required this.onBuy,
     required this.statsSchema,
-    this.isGreyedOut = false,
   });
 
   final StoreItem item;
   final bool canBuy;
-  final VoidCallback onBuy;
+  final bool Function() onBuy;
   final List<StatSchema> statsSchema;
-  final bool isGreyedOut;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -1862,9 +1912,6 @@ class _StoreItemCard extends StatelessWidget {
   }
 
   Color _getCardBackgroundColor() {
-    if (isGreyedOut) {
-      return Colors.grey.shade400;
-    }
     if (item is StoreItemAsset) {
       return GameThemeConstants.creamSurface;
     }
@@ -1873,13 +1920,10 @@ class _StoreItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: isGreyedOut ? 0.6 : 1.0,
-      child: GameCard(
-        backgroundColor: _getCardBackgroundColor(),
-        padding: const EdgeInsets.all(SpacingConstants.xs),
-        child: _buildCardLayout(context),
-      ),
+    return GameCard(
+      backgroundColor: _getCardBackgroundColor(),
+      padding: const EdgeInsets.all(SpacingConstants.xs),
+      child: _buildCardLayout(context),
     );
   }
 
@@ -2011,14 +2055,14 @@ class _StoreItemCard extends StatelessWidget {
   Widget _buildButton(BuildContext context) {
     if (item is StoreItemAsset) {
       return _AnimatedInvestButton(
-        canBuy: canBuy && !isGreyedOut,
+        canBuy: canBuy,
         onBuy: onBuy,
         compact: false,
       );
     }
     return GameButton(
       label: 'Buy',
-      onPressed: (canBuy && !isGreyedOut) ? onBuy : null,
+      onPressed: canBuy ? onBuy : null,
       variant: GameButtonVariant.success,
       isFullWidth: true,
       padding: const EdgeInsets.symmetric(

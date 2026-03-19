@@ -495,21 +495,19 @@ class _SimulationChartState extends State<_SimulationChart> {
                 handleBuiltInTouches: true,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (touchedSpots) {
-                    if (touchedSpots.isEmpty) return [];
-                    final spot = touchedSpots.first;
-                    if (eventSpotIndices.contains(spot.spotIndex)) {
-                      return [];
-                    }
-                    return [
-                      LineTooltipItem(
+                    return touchedSpots.map((LineBarSpot spot) {
+                      if (eventSpotIndices.contains(spot.spotIndex)) {
+                        return null;
+                      }
+                      return LineTooltipItem(
                         'Month ${(spot.x.toInt() + 1).clamp(1, 12)}\n'
                         '\$${spot.y.toStringAsFixed(0)}',
                         const TextStyle(
                           color: GameThemeConstants.creamSurface,
                           fontSize: 12,
                         ),
-                      ),
-                    ];
+                      );
+                    }).toList();
                   },
                   getTooltipColor: (_) => GameThemeConstants.darkNavy,
                   maxContentWidth: 180,

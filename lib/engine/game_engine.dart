@@ -68,19 +68,24 @@ class GameEngine {
   GameState? get state => _state;
 
   static const int maxRounds = 20;
-  static const int _itemSlotsCount = 6;
+  static int _knowledgeSlotCount(Character character) {
+    final raw = character.initialStats['knowledgeSlots'];
+    if (raw is num) return raw.toInt().clamp(1, 12);
+    return 6;
+  }
 
   bool get canPlayNextRound => (_state?.currentYear ?? 1) <= maxRounds;
   bool get hasReachedRoundLimit => !canPlayNextRound;
 
   void startNewGame(Character character) {
     final initialCash = (character.initialStats['money'] ?? 0).toInt();
+    final slotCount = _knowledgeSlotCount(character);
     _state = GameState(
       character: character,
       stats: CharacterStats(Map<String, num>.from(character.initialStats)),
       cash: initialCash,
       holdings: {},
-      itemSlots: List.filled(_itemSlotsCount, null),
+      itemSlots: List<OwnedItem?>.filled(slotCount, null),
       portfolioHistory: [
         PortfolioHistoryPoint(year: 1, value: initialCash.toDouble()),
       ],
@@ -98,8 +103,10 @@ class GameEngine {
   Map<String, PortfolioAsset> get currentHoldings =>
       Map.from(_state?.holdings ?? {});
 
-  List<OwnedItem?> get itemSlots =>
-      List.from(_state?.itemSlots ?? List.filled(_itemSlotsCount, null));
+  List<OwnedItem?> get itemSlots {
+    if (_state == null) return List<OwnedItem?>.filled(6, null);
+    return List<OwnedItem?>.from(_state!.itemSlots);
+  }
 
   int get holdingsCount => _state?.holdings.length ?? 0;
 

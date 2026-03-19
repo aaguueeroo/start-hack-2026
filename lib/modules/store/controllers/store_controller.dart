@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:start_hack_2026/data/repositories/game_repository.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
@@ -29,7 +30,6 @@ class StoreController extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   int _allocatedPercent = 0;
-  final Set<String> _purchasedLearningCardIds = {};
   int _reshuffleCount = 0;
 
   List<StatSchema> get statsSchema => _statsSchema;
@@ -54,7 +54,6 @@ class StoreController extends ChangeNotifier {
   Future<void> loadStoreData() async {
     _isLoading = true;
     _errorMessage = null;
-    _purchasedLearningCardIds.clear();
     _reshuffleCount = 0;
     _syncAllocatedPercent();
     notifyListeners();
@@ -121,7 +120,6 @@ class StoreController extends ChangeNotifier {
   bool canBuy(StoreItem item) {
     switch (item) {
       case StoreItemItem():
-        if (isLearningCardPurchased(item)) return false;
         return _gameEngine.validatePurchase(item, _statsSchema);
       case StoreItemAsset():
         return _canBuyAsset(item);
@@ -144,33 +142,61 @@ class StoreController extends ChangeNotifier {
     return true;
   }
 
-  void buyItem(StoreItemItem item) {
-    if (!canBuy(item)) return;
+  /// Returns whether the purchase was applied.
+  bool buyItem(StoreItemItem item) {
+    if (!canBuy(item)) return false;
     _gameEngine.applyItemPurchase(item, _statsSchema);
-    _purchasedLearningCardIds.add('${item.id}_${item.level}');
-    notifyListeners();
+    return true;
   }
 
-  void buyAsset(StoreItemAsset asset) {
-    if (!_canBuyAsset(asset)) return;
+  bool _slotMatchesItem(int offerIndex, StoreItem item) {
+    if (offerIndex < 0 || offerIndex >= _storeOffer.length) return false;
+    final slot = _storeOffer[offerIndex];
+    if (identical(slot, item)) return true;
+    if (slot is StoreItemItem && item is StoreItemItem) {
+      return slot.id == item.id && slot.level == item.level;
+    }
+    if (slot is StoreItemAsset && item is StoreItemAsset) {
+      return slot.id == item.id;
+    }
+    return false;
+  }
+
+  bool _applyAssetPurchase(StoreItemAsset asset) {
+    if (!_canBuyAsset(asset)) return false;
     final totalCapital = _gameEngine.currentPortfolioValue;
     final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
     final quantity = (amountToSpend / asset.price).floor();
-    if (quantity < 1) return;
+    if (quantity < 1) return false;
     _gameEngine.applyAssetPurchase(asset, quantity,
         allocationPercent: _allocationPercentPerBuy);
     _allocatedPercent += _allocationPercentPerBuy;
-    notifyListeners();
+    return true;
   }
 
-  void purchase(StoreItem item) {
+  void _removeOfferAt(int offerIndex) {
+    if (offerIndex < 0 || offerIndex >= _storeOffer.length) return;
+    _storeOffer = List<StoreItem>.from(_storeOffer)..removeAt(offerIndex);
+  }
+
+  /// Returns whether a purchase was completed (card is removed from the offer).
+  bool purchase(StoreItem item, {required int offerIndex}) {
     switch (item) {
-      case StoreItemItem():
-        buyItem(item);
-      case StoreItemAsset():
-        buyAsset(item);
+      case final StoreItemItem i:
+        if (!_slotMatchesItem(offerIndex, i)) return false;
+        if (!buyItem(i)) return false;
+        _removeOfferAt(offerIndex);
+        HapticFeedback.lightImpact();
+        notifyListeners();
+        return true;
+      case final StoreItemAsset a:
+        if (!_slotMatchesItem(offerIndex, a)) return false;
+        if (!_applyAssetPurchase(a)) return false;
+        _removeOfferAt(offerIndex);
+        HapticFeedback.lightImpact();
+        notifyListeners();
+        return true;
     }
-    // Cards do not disappear - no replacement
   }
 
   bool canCombineItems(int slotA, int slotB) {
@@ -192,9 +218,6 @@ class StoreController extends ChangeNotifier {
   /// Allocation percent allocated to this asset (fixed at time of investment).
   int getAssetAllocationPercent(String assetId) =>
       _gameEngine.getAssetAllocationPercent(assetId);
-
-  bool isLearningCardPurchased(StoreItemItem item) =>
-      _purchasedLearningCardIds.contains('${item.id}_${item.level}');
 
   /// Current total return for an owned asset (from centralized asset engine).
   double getAssetTotalReturnPercent(PortfolioAsset asset) {

@@ -13,6 +13,13 @@ class CharacterStats {
 
   int get assetSlots => get('assetSlots').toInt();
 
+  /// Max knowledge (item) slots; clamped when missing from legacy saves.
+  int get knowledgeSlots {
+    final raw = values['knowledgeSlots'];
+    if (raw == null) return 6;
+    return raw.toInt().clamp(1, 12);
+  }
+
   int get monthlySavings => get('monthlySavings').toInt();
 
   double get returnStat => get('return').toDouble();

@@ -197,6 +197,8 @@ class _StatsSection extends StatelessWidget {
         'Your available cash—the amount you can spend on knowledge items and financial assets. Money does not earn returns on its own; it must be invested. Keeping too much in cash means missing out on growth, but you need some on hand for opportunities and emergencies.',
     'assetSlots':
         'The maximum number of different assets you can hold at once. Each slot lets you own one type of investment (e.g. bonds, stocks, funds). More slots allow better diversification, spreading risk across different markets and asset classes.',
+    'knowledgeSlots':
+        'How many knowledge items you can own at the same time. Empty slots can be filled from the store. You can buy the same card again to merge it with an existing copy (same level) into a higher level, or place it in a free slot if you have one.',
     'monthlySavings':
         'The amount you save and invest each month. This is added to your portfolio at the end of every month during the simulation. Higher savings accelerate growth through compound returns. Consistency matters more than timing the market.',
     'return':
