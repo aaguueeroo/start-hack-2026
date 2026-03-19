@@ -30,6 +30,7 @@ class GameState {
     this.currentYear = 1,
     this.cumulativeSimulationDataPoints = const [],
     this.cumulativeSimulationEvents = const [],
+    this.assetAllocationPercent = const {},
   });
 
   final Character character;
@@ -41,6 +42,9 @@ class GameState {
   final int currentYear;
   final List<SimulationDataPoint> cumulativeSimulationDataPoints;
   final List<SimulationEvent> cumulativeSimulationEvents;
+
+  /// Allocation percent per asset (fixed at time of investment, does not change with market).
+  final Map<String, int> assetAllocationPercent;
 }
 
 class GameEngine {
@@ -79,6 +83,7 @@ class GameEngine {
       currentYear: 1,
       cumulativeSimulationDataPoints: [],
       cumulativeSimulationEvents: [],
+      assetAllocationPercent: {},
     );
   }
 
@@ -160,6 +165,7 @@ class GameEngine {
       currentYear: _state!.currentYear,
       cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: _state!.assetAllocationPercent,
     );
       return;
     }
@@ -214,6 +220,7 @@ class GameEngine {
       currentYear: _state!.currentYear,
       cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: _state!.assetAllocationPercent,
     );
   }
 
@@ -270,10 +277,12 @@ class GameEngine {
       currentYear: _state!.currentYear,
       cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: _state!.assetAllocationPercent,
     );
   }
 
-  void applyAssetPurchase(StoreItemAsset asset, int quantity) {
+  void applyAssetPurchase(StoreItemAsset asset, int quantity,
+      {int allocationPercent = 0}) {
     if (_state == null) return;
     final holdings = Map<String, PortfolioAsset>.from(_state!.holdings);
     final existing = holdings[asset.id];
@@ -311,6 +320,9 @@ class GameEngine {
       );
     }
     final totalCost = asset.price * quantity;
+    final allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
+    allocationMap[asset.id] =
+        (allocationMap[asset.id] ?? 0) + allocationPercent;
     _state = GameState(
       character: _state!.character,
       stats: _state!.stats,
@@ -321,6 +333,7 @@ class GameEngine {
       currentYear: _state!.currentYear,
       cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: allocationMap,
     );
   }
 
@@ -337,6 +350,8 @@ class GameEngine {
     final holdings = Map<String, PortfolioAsset>.from(_state!.holdings);
     holdings.remove(assetId);
     final saleValue = _assetCalculationEngine.saleValue(asset);
+    final allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
+    allocationMap.remove(assetId);
     _state = GameState(
       character: _state!.character,
       stats: _state!.stats,
@@ -347,6 +362,7 @@ class GameEngine {
       currentYear: _state!.currentYear,
       cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: allocationMap,
     );
   }
 
@@ -415,6 +431,8 @@ class GameEngine {
           cash: cashAfterSim,
           holdings: holdingsAfterSim,
         );
+    final allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
+    allocationMap.removeWhere((id, _) => !holdingsAfterSim.containsKey(id));
     _state = GameState(
       character: _state!.character,
       stats: CharacterStats(baseStats),
@@ -430,8 +448,12 @@ class GameEngine {
           cumulativeDataPoints ?? _state!.cumulativeSimulationDataPoints,
       cumulativeSimulationEvents:
           cumulativeEvents ?? _state!.cumulativeSimulationEvents,
+      assetAllocationPercent: allocationMap,
     );
   }
+
+  int getAssetAllocationPercent(String assetId) =>
+      _state?.assetAllocationPercent[assetId] ?? 0;
 
   List<SimulationDataPoint> get cumulativeSimulationDataPoints =>
       List.from(_state?.cumulativeSimulationDataPoints ?? []);

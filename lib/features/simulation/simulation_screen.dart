@@ -216,6 +216,8 @@ class _ActiveEventsChips extends StatelessWidget {
         return Icons.person;
       case SimulationEventType.world:
         return Icons.public;
+      case SimulationEventType.panicSell:
+        return Icons.sell;
     }
   }
 
@@ -301,6 +303,21 @@ class _SimulationChart extends StatelessWidget {
                   return touchedSpots.map((spot) {
                     final event = eventSpotMap[spot.spotIndex];
                     if (event != null) {
+                      if (event.type == SimulationEventType.panicSell &&
+                          event.panicSellAmount != null &&
+                          event.panicSellLoss != null) {
+                        return LineTooltipItem(
+                          '${event.title}\n'
+                          'Sold: \$${event.panicSellAmount}\n'
+                          'Loss: \$${event.panicSellLoss!.toStringAsFixed(0)}\n\n'
+                          'Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
+                          TextStyle(
+                            color: GameThemeConstants.creamSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }
                       return LineTooltipItem(
                         '${event.title}\n${event.description}\n\n'
                         'Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
@@ -407,6 +424,8 @@ class _SimulationChart extends StatelessWidget {
         return GameThemeConstants.accentDark;
       case SimulationEventType.world:
         return GameThemeConstants.warningDark;
+      case SimulationEventType.panicSell:
+        return GameThemeConstants.statNegative;
     }
   }
 }

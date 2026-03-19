@@ -110,7 +110,8 @@ class StoreController extends ChangeNotifier {
     final amountToSpend = totalCapital * (_allocationPercentPerBuy / 100);
     final quantity = (amountToSpend / asset.price).floor();
     if (quantity < 1) return;
-    _gameEngine.applyAssetPurchase(asset, quantity);
+    _gameEngine.applyAssetPurchase(asset, quantity,
+        allocationPercent: _allocationPercentPerBuy);
     _allocatedPercent += _allocationPercentPerBuy;
     notifyListeners();
   }
@@ -138,6 +139,10 @@ class StoreController extends ChangeNotifier {
     _gameEngine.sellAsset(assetId);
     notifyListeners();
   }
+
+  /// Allocation percent allocated to this asset (fixed at time of investment).
+  int getAssetAllocationPercent(String assetId) =>
+      _gameEngine.getAssetAllocationPercent(assetId);
 
   /// Current total return for an owned asset (from centralized asset engine).
   double getAssetTotalReturnPercent(PortfolioAsset asset) {

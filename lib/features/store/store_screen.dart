@@ -214,7 +214,8 @@ class _StoreScreenState extends State<StoreScreen> {
                         const SizedBox(height: SpacingConstants.lg),
                         _AssetSlotsSection(
                           holdings: controller.holdings,
-                          currentPortfolioValue: controller.currentPortfolioValue,
+                          getAssetAllocationPercent:
+                              controller.getAssetAllocationPercent,
                           onSell: controller.sellAsset,
                           statsSchema: controller.statsSchema,
                           getAssetTotalReturnPercent:
@@ -801,18 +802,6 @@ class _BuySection extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (hasComparison) ...[
-                    Icon(
-                      isGrowing
-                          ? Icons.arrow_drop_up
-                          : isDecreasing
-                          ? Icons.arrow_drop_down
-                          : Icons.remove,
-                      size: 48,
-                      color: valueColor,
-                    ),
-                    const SizedBox(width: SpacingConstants.xs),
-                  ],
                   Text(
                     '\$${totalCapital.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -1171,14 +1160,14 @@ class _ItemSlotCard extends StatelessWidget {
 class _AssetSlotsSection extends StatefulWidget {
   const _AssetSlotsSection({
     required this.holdings,
-    required this.currentPortfolioValue,
+    required this.getAssetAllocationPercent,
     required this.onSell,
     required this.statsSchema,
     required this.getAssetTotalReturnPercent,
   });
 
   final Map<String, PortfolioAsset> holdings;
-  final double currentPortfolioValue;
+  final int Function(String assetId) getAssetAllocationPercent;
   final void Function(String assetId) onSell;
   final List<StatSchema> statsSchema;
   final double Function(PortfolioAsset asset) getAssetTotalReturnPercent;
@@ -1266,9 +1255,8 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
             itemCount: widget.holdings.length,
             itemBuilder: (context, index) {
               final asset = widget.holdings.values.elementAt(index);
-              final allocationPercent = widget.currentPortfolioValue > 0
-                  ? (asset.totalValue / widget.currentPortfolioValue) * 100
-                  : 0.0;
+              final allocationPercent =
+                  widget.getAssetAllocationPercent(asset.assetId).toDouble();
               return _AssetSlotCard(
                 key: _getKeyForAsset(asset.assetId),
                 asset: asset,

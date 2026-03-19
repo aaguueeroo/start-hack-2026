@@ -90,6 +90,18 @@ class SimulationController extends ChangeNotifier {
               portfolioValueAtEvent: result.event!.portfolioValueAtEvent,
             ));
           }
+          if (result.panicSellEvent != null) {
+            final p = result.panicSellEvent!;
+            _events.add(SimulationEvent(
+              timestamp: monthOffset + p.timestamp,
+              type: p.type,
+              title: p.title,
+              description: p.description,
+              portfolioValueAtEvent: p.portfolioValueAtEvent,
+              panicSellAmount: p.panicSellAmount,
+              panicSellLoss: p.panicSellLoss,
+            ));
+          }
           notifyListeners();
         },
         onError: (e) {
