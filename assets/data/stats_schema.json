@@ -11,20 +11,39 @@
       "displayName": "Asset Slots",
       "description": "How many different investments you can hold at the same time. Each slot is one type of investment.",
       "min": 1,
-      "max": 10
+      "max": 10,
+      "category": "personal"
     },
     {
       "id": "knowledgeSlots",
       "displayName": "Knowledge Slots",
       "description": "How many learning cards you can keep. Same card twice can level up, like merging in other games.",
       "min": 1,
-      "max": 12
+      "max": 12,
+      "category": "personal"
+    },
+    {
+      "id": "riskTolerance",
+      "displayName": "Risk Tolerance",
+      "description": "How much volatility and drawdown you can psychologically accept.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
+    },
+    {
+      "id": "financialKnowledge",
+      "displayName": "Financial Knowledge",
+      "description": "Your understanding of investing concepts and disciplined decisions.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
     },
     {
       "id": "monthlySavings",
       "displayName": "Monthly Savings",
       "description": "Each month this amount gets added to your investing pot—like an automatic piggy bank.",
-      "min": 0
+      "min": 0,
+      "category": "personal"
     },
     {
       "id": "return",
