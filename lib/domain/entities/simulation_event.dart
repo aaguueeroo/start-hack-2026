@@ -1,7 +1,8 @@
 enum SimulationEventType {
   market,
   character,
-  world;
+  world,
+  panicSell;
 
   static SimulationEventType fromString(String value) {
     return SimulationEventType.values.firstWhere(
@@ -18,6 +19,8 @@ class SimulationEvent {
     required this.title,
     required this.description,
     required this.portfolioValueAtEvent,
+    this.panicSellAmount,
+    this.panicSellLoss,
   });
 
   final double timestamp;
@@ -25,6 +28,12 @@ class SimulationEvent {
   final String title;
   final String description;
   final double portfolioValueAtEvent;
+
+  /// Amount received from panic sell (only for type == panicSell).
+  final int? panicSellAmount;
+
+  /// Loss locked in by panic selling (cost basis - sale value).
+  final double? panicSellLoss;
 }
 
 /// A single data point on the simulation portfolio value graph.

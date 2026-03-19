@@ -48,6 +48,7 @@ class SimulationResult {
     required this.timestamp,
     required this.portfolioValue,
     this.event,
+    this.panicSellEvent,
     this.activeEvents = const [],
     this.finalCash,
     this.finalHoldings,
@@ -56,6 +57,9 @@ class SimulationResult {
   final double timestamp;
   final double portfolioValue;
   final SimulationEvent? event;
+
+  /// Emitted when the player panic-sells an asset during simulation.
+  final SimulationEvent? panicSellEvent;
 
   /// Events currently affecting the market at this timestamp.
   final List<ActiveEvent> activeEvents;
@@ -210,6 +214,7 @@ class SimulationEngine {
         newHoldings[entry.key] = asset;
       }
 
+      SimulationEvent? panicSellEvent;
       final volatility = _assetCalculationEngine.averageVolatility(
         currentHoldings,
       );
@@ -219,11 +224,24 @@ class SimulationEngine {
         final toSell = currentHoldings.keys.toList()..shuffle(_random);
         for (final assetId in toSell.take(1)) {
           final asset = currentHoldings[assetId]!;
-          currentCash += _assetCalculationEngine
-              .assetValueWithFactor(asset, returnFactors[assetId] ?? 1.0)
-              .toInt();
+          final costBasis = _assetCalculationEngine.costBasis(asset);
+          final saleValue = _assetCalculationEngine.assetValueWithFactor(
+            asset,
+            returnFactors[assetId] ?? 1.0,
+          );
+          final loss = costBasis - saleValue;
+          currentCash += saleValue.toInt();
           currentHoldings.remove(assetId);
           returnFactors.remove(assetId);
+          panicSellEvent = SimulationEvent(
+            timestamp: currentMonth,
+            type: SimulationEventType.panicSell,
+            title: 'Panic Sell',
+            description: 'Sold ${asset.name} during market stress',
+            portfolioValueAtEvent: 0, // Set after portfolioValue computed
+            panicSellAmount: saleValue.toInt(),
+            panicSellLoss: loss,
+          );
         }
       }
 
@@ -232,6 +250,18 @@ class SimulationEngine {
         holdings: currentHoldings,
         returnFactors: returnFactors,
       );
+
+      if (panicSellEvent != null) {
+        panicSellEvent = SimulationEvent(
+          timestamp: panicSellEvent.timestamp,
+          type: panicSellEvent.type,
+          title: panicSellEvent.title,
+          description: panicSellEvent.description,
+          portfolioValueAtEvent: portfolioValue,
+          panicSellAmount: panicSellEvent.panicSellAmount,
+          panicSellLoss: panicSellEvent.panicSellLoss,
+        );
+      }
 
       SimulationEvent? event;
       if (newEventConfig != null) {
@@ -259,6 +289,7 @@ class SimulationEngine {
         timestamp: currentMonth,
         portfolioValue: portfolioValue,
         event: event,
+        panicSellEvent: panicSellEvent,
         activeEvents: activeList,
         finalCash: isLastTick ? currentCash : null,
         finalHoldings: finalHoldingsMap,

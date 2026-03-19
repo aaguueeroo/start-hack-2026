@@ -107,6 +107,20 @@ class SimulationController extends ChangeNotifier {
                   ),
                 );
               }
+              if (result.panicSellEvent != null) {
+                final panic = result.panicSellEvent!;
+                _events.add(
+                  SimulationEvent(
+                    timestamp: monthOffset + panic.timestamp,
+                    type: panic.type,
+                    title: panic.title,
+                    description: panic.description,
+                    portfolioValueAtEvent: panic.portfolioValueAtEvent,
+                    panicSellAmount: panic.panicSellAmount,
+                    panicSellLoss: panic.panicSellLoss,
+                  ),
+                );
+              }
               _reportMultiplayerSnapshot(isComplete: false);
               notifyListeners();
             },
