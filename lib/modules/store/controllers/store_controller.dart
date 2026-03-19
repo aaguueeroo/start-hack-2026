@@ -138,6 +138,20 @@ class StoreController extends ChangeNotifier {
   bool hasExistingAssetHolding(String assetId) =>
       _gameEngine.currentHoldings.containsKey(assetId);
 
+  int get storeAssetAllocationPercentPerBuy => _allocationPercentPerBuy;
+
+  /// Cash deducted when investing in this asset (same quantity as [purchase]).
+  int getStoreAssetPurchaseCashCost(StoreItemAsset asset) {
+    final double totalCapital = _gameEngine.currentPortfolioValue;
+    final double amountToSpend =
+        totalCapital * (_allocationPercentPerBuy / 100);
+    final int quantity = (amountToSpend / asset.price).floor();
+    if (quantity < 1) {
+      return asset.price;
+    }
+    return quantity * asset.price;
+  }
+
   bool _canBuyAsset(StoreItemAsset asset) {
     if (remainingAllocationPercent < _allocationPercentPerBuy) return false;
     final totalCapital = _gameEngine.currentPortfolioValue;

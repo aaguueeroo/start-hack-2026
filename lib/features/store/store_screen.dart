@@ -329,7 +329,6 @@ class _StoreScreenState extends State<StoreScreen> {
                                   _TotalCapitalContainer(
                                     totalCapital:
                                         controller.currentPortfolioValue,
-                                    cash: controller.cash,
                                     baselineValue:
                                         _getBaselineValueForComparison(
                                           controller,
@@ -347,6 +346,12 @@ class _StoreScreenState extends State<StoreScreen> {
                                     statsSchema: controller.statsSchema,
                                     remainingAllocationPercent:
                                         controller.remainingAllocationPercent,
+                                    cash: controller.cash,
+                                    storeAssetAllocationPercentPerBuy:
+                                        controller
+                                            .storeAssetAllocationPercentPerBuy,
+                                    getStoreAssetPurchaseCashCost: controller
+                                        .getStoreAssetPurchaseCashCost,
                                   ),
                                   const SizedBox(height: SpacingConstants.lg),
                                   _ItemSlotsSection(
@@ -436,12 +441,10 @@ class _StoreScreenState extends State<StoreScreen> {
 class _TotalCapitalContainer extends StatelessWidget {
   const _TotalCapitalContainer({
     required this.totalCapital,
-    required this.cash,
     required this.baselineValue,
   });
 
   final double totalCapital;
-  final int cash;
   final double? baselineValue;
 
   @override
@@ -469,41 +472,13 @@ class _TotalCapitalContainer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: SpacingConstants.xs),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(_coinAssetPath, width: 40, height: 40),
-                const SizedBox(width: SpacingConstants.sm),
-                Text(
-                  totalCapital.toStringAsFixed(0),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 48,
-                    color: valueColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: SpacingConstants.sm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 18,
-                  color: GameThemeConstants.outlineColorLight,
-                ),
-                const SizedBox(width: SpacingConstants.xs),
-                Text(
-                  'Cash (for purchases & shuffle): $cash',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GameThemeConstants.outlineColorLight,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            Text(
+              totalCapital.toStringAsFixed(0),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 48,
+                color: valueColor,
+              ),
             ),
           ],
         ),
@@ -832,6 +807,9 @@ class _BuySection extends StatelessWidget {
     required this.canReshuffle,
     required this.statsSchema,
     required this.remainingAllocationPercent,
+    required this.cash,
+    required this.storeAssetAllocationPercentPerBuy,
+    required this.getStoreAssetPurchaseCashCost,
   });
 
   final List<StoreItem> storeOffer;
@@ -848,6 +826,9 @@ class _BuySection extends StatelessWidget {
   final bool canReshuffle;
   final List<StatSchema> statsSchema;
   final int remainingAllocationPercent;
+  final int cash;
+  final int storeAssetAllocationPercentPerBuy;
+  final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
 
   @override
   Widget build(BuildContext context) {
@@ -888,6 +869,21 @@ class _BuySection extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: SpacingConstants.xs),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(_coinAssetPath, width: 20, height: 20),
+                      const SizedBox(width: SpacingConstants.xs),
+                      Text(
+                        '$cash',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: GameThemeConstants.outlineColorLight,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -905,6 +901,8 @@ class _BuySection extends StatelessWidget {
           onPurchase: onPurchase,
           keyForStoreCard: keyForStoreCard,
           statsSchema: statsSchema,
+          storeAssetAllocationPercentPerBuy: storeAssetAllocationPercentPerBuy,
+          getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
         ),
       ],
     );
@@ -1030,6 +1028,8 @@ class _StoreGrid extends StatelessWidget {
     required this.onPurchase,
     required this.keyForStoreCard,
     required this.statsSchema,
+    required this.storeAssetAllocationPercentPerBuy,
+    required this.getStoreAssetPurchaseCashCost,
   });
 
   final List<StoreItem> items;
@@ -1042,6 +1042,8 @@ class _StoreGrid extends StatelessWidget {
   onPurchase;
   final GlobalKey Function(StoreItem item) keyForStoreCard;
   final List<StatSchema> statsSchema;
+  final int storeAssetAllocationPercentPerBuy;
+  final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
 
   @override
   Widget build(BuildContext context) {
@@ -1102,6 +1104,9 @@ class _StoreGrid extends StatelessWidget {
                     return true;
                   },
                   statsSchema: statsSchema,
+                  storeAssetAllocationPercentPerBuy:
+                      storeAssetAllocationPercentPerBuy,
+                  getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
                 ),
               ),
             ),
@@ -1450,16 +1455,16 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                   Text(
                     'Your Assets',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: SpacingConstants.xs),
                   Text(
                     'Up to ${widget.maxAssetSlots} different assets · '
                     '${widget.holdings.length}/${widget.maxAssetSlots} slots used',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: GameThemeConstants.outlineColorLight,
-                        ),
+                      color: GameThemeConstants.outlineColorLight,
+                    ),
                   ),
                 ],
               ),
@@ -1474,10 +1479,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                 size: 22,
               ),
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: 36,
-              ),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ],
         ),
@@ -1917,45 +1919,132 @@ class _AssetSlotCard extends StatelessWidget {
   }
 }
 
-class _StatRow extends StatelessWidget {
+class _StatRow extends StatefulWidget {
   const _StatRow({required this.stat, required this.value, this.icon});
+
+  static const Duration _tooltipShowDuration = Duration(seconds: 5);
 
   final StatSchema stat;
   final num value;
   final IconData? icon;
 
+  @override
+  State<_StatRow> createState() => _StatRowState();
+}
+
+class _StatRowState extends State<_StatRow> {
+  final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
+
   Color _getStatColor() {
-    if (value > 0) return GameThemeConstants.statPositive;
-    if (value < 0) return GameThemeConstants.statNegative;
+    if (widget.value > 0) return GameThemeConstants.statPositive;
+    if (widget.value < 0) return GameThemeConstants.statNegative;
     return GameThemeConstants.statNeutral;
   }
 
   @override
   Widget build(BuildContext context) {
     final color = _getStatColor();
-    return Padding(
+    final TextStyle? tooltipBodyStyle = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: GameThemeConstants.creamSurface, height: 1.35);
+    final String description = widget.stat.description.trim();
+    final Widget row = Padding(
       padding: const EdgeInsets.symmetric(vertical: SpacingConstants.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (icon != null) ...[
+          if (widget.icon != null) ...[
             Padding(
               padding: EdgeInsets.only(top: 2),
-              child: Icon(icon, size: 18, color: color),
+              child: Icon(widget.icon, size: 18, color: color),
             ),
             const SizedBox(width: SpacingConstants.xs),
           ],
           Expanded(
-            child: Text(stat.displayName, style: TextStyle(color: color)),
+            child: Text(
+              widget.stat.displayName,
+              style: TextStyle(color: color),
+            ),
           ),
           Text(
-            value == value.roundToDouble()
-                ? value.toStringAsFixed(0)
-                : value.toStringAsFixed(2),
+            widget.value == widget.value.roundToDouble()
+                ? widget.value.toStringAsFixed(0)
+                : widget.value.toStringAsFixed(2),
             style: TextStyle(fontWeight: FontWeight.w600, color: color),
           ),
         ],
       ),
+    );
+    if (description.isEmpty) {
+      return row;
+    }
+    return Tooltip(
+      key: _tooltipKey,
+      triggerMode: TooltipTriggerMode.manual,
+      showDuration: _StatRow._tooltipShowDuration,
+      padding: const EdgeInsets.all(SpacingConstants.sm),
+      margin: const EdgeInsets.symmetric(horizontal: SpacingConstants.md),
+      decoration: BoxDecoration(
+        color: GameThemeConstants.darkNavy,
+        borderRadius: BorderRadius.circular(SpacingConstants.radiusSm),
+      ),
+      textStyle: tooltipBodyStyle,
+      message: description,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _tooltipKey.currentState?.ensureTooltipVisible(),
+          borderRadius: BorderRadius.circular(SpacingConstants.radiusSm),
+          mouseCursor: SystemMouseCursors.click,
+          child: row,
+        ),
+      ),
+    );
+  }
+}
+
+class _StoreInvestCostTrailing extends StatelessWidget {
+  const _StoreInvestCostTrailing({
+    required this.allocationPercent,
+    required this.cashCost,
+    required this.compact,
+  });
+
+  final int allocationPercent;
+  final int cashCost;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final double chartSize = compact ? 12 : 16;
+    final double coinSize = compact ? 12 : 16;
+    final double fontSize = compact ? 11 : 14;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          _allocationChartAssetPath,
+          width: chartSize,
+          height: chartSize,
+        ),
+        Text(
+          '$allocationPercent',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: fontSize,
+          ),
+        ),
+        const SizedBox(width: SpacingConstants.xs),
+        Image.asset(_coinAssetPath, width: coinSize, height: coinSize),
+        Text(
+          '$cashCost',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: fontSize,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1964,12 +2053,16 @@ class _AnimatedInvestButton extends StatefulWidget {
   const _AnimatedInvestButton({
     required this.canBuy,
     required this.onBuy,
+    required this.allocationPercent,
+    required this.cashCost,
     this.compact = false,
   });
 
   final bool canBuy;
   final bool compact;
   final bool Function() onBuy;
+  final int allocationPercent;
+  final int cashCost;
 
   @override
   State<_AnimatedInvestButton> createState() => _AnimatedInvestButtonState();
@@ -2028,33 +2121,11 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
                   : SpacingConstants.sm,
               vertical: widget.compact ? 3 : 4,
             ),
-            trailing: widget.compact
-                ? const Text(
-                    '10%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      fontSize: 11,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        _allocationChartAssetPath,
-                        width: 16,
-                        height: 16,
-                      ),
-                      const SizedBox(width: SpacingConstants.xs),
-                      const Text(
-                        '10%',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
+            trailing: _StoreInvestCostTrailing(
+              allocationPercent: widget.allocationPercent,
+              cashCost: widget.cashCost,
+              compact: widget.compact,
+            ),
           ),
         ),
       ),
@@ -2068,12 +2139,16 @@ class _StoreItemCard extends StatelessWidget {
     required this.canBuy,
     required this.onBuy,
     required this.statsSchema,
+    required this.storeAssetAllocationPercentPerBuy,
+    required this.getStoreAssetPurchaseCashCost,
   });
 
   final StoreItem item;
   final bool canBuy;
   final bool Function() onBuy;
   final List<StatSchema> statsSchema;
+  final int storeAssetAllocationPercentPerBuy;
+  final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -2230,11 +2305,14 @@ class _StoreItemCard extends StatelessWidget {
   }
 
   Widget _buildButton(BuildContext context) {
-    if (item is StoreItemAsset) {
+    final StoreItem currentItem = item;
+    if (currentItem is StoreItemAsset) {
       return _AnimatedInvestButton(
         canBuy: canBuy,
         onBuy: onBuy,
         compact: false,
+        allocationPercent: storeAssetAllocationPercentPerBuy,
+        cashCost: getStoreAssetPurchaseCashCost(currentItem),
       );
     }
     return GameButton(

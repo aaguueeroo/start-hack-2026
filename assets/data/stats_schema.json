@@ -3,75 +3,75 @@
     {
       "id": "money",
       "displayName": "Money",
-      "description": "Your available cash to spend on items and assets.",
+      "description": "Cash you can spend right now in the game—on learning items or on investments.",
       "min": 0
     },
     {
       "id": "assetSlots",
       "displayName": "Asset Slots",
-      "description": "Maximum number of different assets you can hold at once.",
+      "description": "How many different investments you can hold at the same time. Each slot is one type of investment.",
       "min": 1,
       "max": 10
     },
     {
       "id": "knowledgeSlots",
       "displayName": "Knowledge Slots",
-      "description": "How many knowledge items you can hold at once. Buy duplicates to merge levels or fill extra slots.",
+      "description": "How many learning cards you can keep. Same card twice can level up, like merging in other games.",
       "min": 1,
       "max": 12
     },
     {
       "id": "monthlySavings",
       "displayName": "Monthly Savings",
-      "description": "Amount you save and invest each month.",
+      "description": "Each month this amount gets added to your investing pot—like an automatic piggy bank.",
       "min": 0
     },
     {
       "id": "return",
       "displayName": "Return",
-      "description": "Expected portfolio return based on your holdings.",
+      "description": "Roughly how much your mix of investments might grow over time. Higher can mean more gain, but nothing is guaranteed in real life.",
       "category": "portfolio"
     },
     {
       "id": "volatility",
       "displayName": "Volatility",
-      "description": "Portfolio volatility (risk measure).",
+      "description": "How wild the ride is—big ups and downs mean higher volatility. Calm and steady means lower.",
       "category": "portfolio"
     },
     {
       "id": "diversification",
       "displayName": "Diversification",
-      "description": "How spread out your investments are.",
+      "description": "You aren't betting everything on one thing. Spread out usually means less heartbreak if one investment tanks.",
       "category": "portfolio"
     },
     {
       "id": "sharpeRatio",
       "displayName": "Sharpe Ratio",
-      "description": "Risk-adjusted return measure.",
+      "description": "A score that mixes \"how much you might earn\" with \"how bumpy the path is.\" Higher often means a nicer balance, not just chasing the riskiest option.",
       "category": "portfolio"
     },
     {
       "id": "managementCostDrag",
       "displayName": "Management Cost Drag",
-      "description": "Total management fees as percentage.",
+      "description": "Fees and costs that quietly eat part of your returns—like a small leak in a bucket.",
       "category": "portfolio"
     },
     {
       "id": "liquidityRatio",
       "displayName": "Liquidity Ratio",
-      "description": "How easily you can access your funds.",
+      "description": "How easily you could turn your investments back into cash if you needed money in a hurry.",
       "category": "portfolio"
     },
     {
       "id": "taxDrag",
       "displayName": "Tax Drag",
-      "description": "Tax impact on returns.",
+      "description": "Part of what you earn that goes to taxes instead of staying in your pocket.",
       "category": "portfolio"
     },
     {
       "id": "emotionalReaction",
       "displayName": "Emotional Reaction",
-      "description": "How you react to market swings.",
+      "description": "How strongly market drama hits your mood—panic selling or hype buying vs staying steady.",
       "min": 0,
       "max": 100,
       "category": "personal"
@@ -79,7 +79,7 @@
     {
       "id": "knowledge",
       "displayName": "Knowledge",
-      "description": "Your financial literacy level.",
+      "description": "How much money-and-investing stuff your character understands. Learning items bump this up.",
       "min": 0,
       "max": 100,
       "category": "personal"
@@ -87,14 +87,14 @@
     {
       "id": "investmentHorizonRemaining",
       "displayName": "Investment Horizon",
-      "description": "Years until you need the money.",
+      "description": "How many years you're planning to leave this money invested before you need it for something real.",
       "min": 0,
       "category": "personal"
     },
     {
       "id": "savingsRate",
       "displayName": "Savings Rate",
-      "description": "Percentage of income you save.",
+      "description": "Out of what you earn, what percent you save instead of spending it all.",
       "min": 0,
       "max": 100,
       "category": "personal"
@@ -102,7 +102,7 @@
     {
       "id": "behavioralBias",
       "displayName": "Behavioral Bias",
-      "description": "Tendency to make emotional decisions.",
+      "description": "How much FOMO, fear, or habit might push you into bad choices instead of thinking twice.",
       "min": 0,
       "max": 100,
       "category": "personal"

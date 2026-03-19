@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
-import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
 import 'package:start_hack_2026/features/leaderboard/leaderboard_podium.dart';
+import 'package:start_hack_2026/features/leaderboard/leaderboard_shimmer.dart';
 import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -45,7 +45,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: Consumer<LeaderboardController>(
           builder: (context, controller, _) {
             if (controller.isLoading) {
-              return const Center(child: GameProgressIndicator());
+              return const LeaderboardShimmer();
             }
 
             if (controller.errorMessage != null) {
