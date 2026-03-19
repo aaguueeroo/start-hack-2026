@@ -11,7 +11,8 @@ import 'package:start_hack_2026/engine/game_engine.dart';
 /// Allocation percentage per asset buy (10% of total capital).
 const int _allocationPercentPerBuy = 10;
 
-/// Reshuffle cost progression: 1000 -> 2000 -> 5000, then +2000 per reshuffle.
+/// Reshuffle cost progression: 1000 -> 2000 -> 5000, then +2000 per reshuffle
+/// (counter resets after each store purchase so typical play stays on the first tier).
 const List<int> _reshuffleCosts = [1000, 2000, 5000];
 const int _reshuffleCostIncrement = 2000;
 
@@ -190,6 +191,13 @@ class StoreController extends ChangeNotifier {
     _storeOffer = List<StoreItem>.from(_storeOffer)..removeAt(offerIndex);
   }
 
+  /// After any purchase, next shuffle uses the first-tier price again. Without
+  /// this, the second shuffle in the same visit costs 2000+ while cash is often
+  /// already reduced by the first shuffle and purchases.
+  void _resetReshuffleCostAfterPurchase() {
+    _reshuffleCount = 0;
+  }
+
   /// Returns whether a purchase was completed (card is removed from the offer).
   bool purchase(StoreItem item, {required int offerIndex}) {
     switch (item) {
@@ -197,6 +205,7 @@ class StoreController extends ChangeNotifier {
         if (!_slotMatchesItem(offerIndex, i)) return false;
         if (!buyItem(i)) return false;
         _removeOfferAt(offerIndex);
+        _resetReshuffleCostAfterPurchase();
         HapticFeedback.lightImpact();
         notifyListeners();
         return true;
@@ -204,6 +213,7 @@ class StoreController extends ChangeNotifier {
         if (!_slotMatchesItem(offerIndex, a)) return false;
         if (!_applyAssetPurchase(a)) return false;
         _removeOfferAt(offerIndex);
+        _resetReshuffleCostAfterPurchase();
         // Card leaves the shelf (no replacement). The same asset can stack
         // when it shows up again after reshuffle or a new round’s store refresh.
         HapticFeedback.lightImpact();

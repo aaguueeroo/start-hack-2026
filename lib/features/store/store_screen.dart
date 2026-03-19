@@ -329,6 +329,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                   _TotalCapitalContainer(
                                     totalCapital:
                                         controller.currentPortfolioValue,
+                                    cash: controller.cash,
                                     baselineValue:
                                         _getBaselineValueForComparison(
                                           controller,
@@ -435,10 +436,12 @@ class _StoreScreenState extends State<StoreScreen> {
 class _TotalCapitalContainer extends StatelessWidget {
   const _TotalCapitalContainer({
     required this.totalCapital,
+    required this.cash,
     required this.baselineValue,
   });
 
   final double totalCapital;
+  final int cash;
   final double? baselineValue;
 
   @override
@@ -478,6 +481,26 @@ class _TotalCapitalContainer extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 48,
                     color: valueColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: SpacingConstants.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 18,
+                  color: GameThemeConstants.outlineColorLight,
+                ),
+                const SizedBox(width: SpacingConstants.xs),
+                Text(
+                  'Cash (for purchases & shuffle): $cash',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: GameThemeConstants.outlineColorLight,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
