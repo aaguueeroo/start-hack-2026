@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
@@ -401,7 +402,7 @@ class _StoreScreenState extends State<StoreScreen> {
                         bottom: safeBottomInset + SpacingConstants.md,
                         child: GameButton(
                           label: 'Play',
-                          icon: Icons.play_arrow,
+                          iconWidget: const CartoonPlayIcon(),
                           onPressed: () => context.push('/simulation'),
                           variant: GameButtonVariant.success,
                         ),
@@ -1070,7 +1071,7 @@ class _ItemSlotsSection extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 1.1,
+            childAspectRatio: 1.0,
             crossAxisSpacing: SpacingConstants.sm,
             mainAxisSpacing: SpacingConstants.sm,
           ),
@@ -1830,9 +1831,14 @@ class _StatRow extends StatelessWidget {
 }
 
 class _AnimatedInvestButton extends StatefulWidget {
-  const _AnimatedInvestButton({required this.canBuy, required this.onBuy});
+  const _AnimatedInvestButton({
+    required this.canBuy,
+    required this.onBuy,
+    this.compact = false,
+  });
 
   final bool canBuy;
+  final bool compact;
   final VoidCallback onBuy;
 
   @override
@@ -1883,25 +1889,38 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
             label: 'Invest',
             onPressed: widget.canBuy ? () {} : null,
             variant: GameButtonVariant.success,
-            isFullWidth: true,
-            padding: const EdgeInsets.symmetric(
-              horizontal: SpacingConstants.sm,
-              vertical: SpacingConstants.xs,
+            isFullWidth: !widget.compact,
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.compact ? SpacingConstants.xs : SpacingConstants.sm,
+              vertical: widget.compact ? 3 : 4,
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(_allocationChartAssetPath, width: 20, height: 20),
-                const SizedBox(width: SpacingConstants.xs),
-                const Text(
-                  '10%',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+            trailing: widget.compact
+                ? const Text(
+                    '10%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        _allocationChartAssetPath,
+                        width: 16,
+                        height: 16,
+                      ),
+                      const SizedBox(width: SpacingConstants.xs),
+                      const Text(
+                        '10%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

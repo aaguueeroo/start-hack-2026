@@ -10,6 +10,7 @@ class GameButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.iconWidget,
     this.trailing,
     this.variant = GameButtonVariant.primary,
     this.isFullWidth = true,
@@ -19,6 +20,7 @@ class GameButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final Widget? iconWidget;
   final Widget? trailing;
   final GameButtonVariant variant;
   final bool isFullWidth;
@@ -72,7 +74,10 @@ class GameButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[
+                if (iconWidget != null) ...[
+                  iconWidget!,
+                  const SizedBox(width: SpacingConstants.sm),
+                ] else if (icon != null) ...[
                   Icon(icon, color: Colors.white, size: 24),
                   const SizedBox(width: SpacingConstants.sm),
                 ],
