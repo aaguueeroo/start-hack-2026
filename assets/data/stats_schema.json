@@ -7,20 +7,6 @@
       "min": 0
     },
     {
-      "id": "riskTolerance",
-      "displayName": "Risk Tolerance",
-      "description": "How much loss you can stomach before selling. Higher values mean you hold through downturns.",
-      "min": 0,
-      "max": 100
-    },
-    {
-      "id": "financialKnowledge",
-      "displayName": "Financial Knowledge",
-      "description": "Your understanding of markets. Affects decision quality during simulation.",
-      "min": 0,
-      "max": 100
-    },
-    {
       "id": "assetSlots",
       "displayName": "Asset Slots",
       "description": "Maximum number of different assets you can hold at once.",
@@ -32,6 +18,87 @@
       "displayName": "Annual Income",
       "description": "Money you receive each year to invest.",
       "min": 0
+    },
+    {
+      "id": "return",
+      "displayName": "Return",
+      "description": "Expected portfolio return based on your holdings.",
+      "category": "portfolio"
+    },
+    {
+      "id": "volatility",
+      "displayName": "Volatility",
+      "description": "Portfolio volatility (risk measure).",
+      "category": "portfolio"
+    },
+    {
+      "id": "diversification",
+      "displayName": "Diversification",
+      "description": "How spread out your investments are.",
+      "category": "portfolio"
+    },
+    {
+      "id": "sharpeRatio",
+      "displayName": "Sharpe Ratio",
+      "description": "Risk-adjusted return measure.",
+      "category": "portfolio"
+    },
+    {
+      "id": "managementCostDrag",
+      "displayName": "Management Cost Drag",
+      "description": "Total management fees as percentage.",
+      "category": "portfolio"
+    },
+    {
+      "id": "liquidityRatio",
+      "displayName": "Liquidity Ratio",
+      "description": "How easily you can access your funds.",
+      "category": "portfolio"
+    },
+    {
+      "id": "taxDrag",
+      "displayName": "Tax Drag",
+      "description": "Tax impact on returns.",
+      "category": "portfolio"
+    },
+    {
+      "id": "emotionalReaction",
+      "displayName": "Emotional Reaction",
+      "description": "How you react to market swings.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
+    },
+    {
+      "id": "knowledge",
+      "displayName": "Knowledge",
+      "description": "Your financial literacy level.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
+    },
+    {
+      "id": "investmentHorizonRemaining",
+      "displayName": "Investment Horizon",
+      "description": "Years until you need the money.",
+      "min": 0,
+      "category": "personal"
+    },
+    {
+      "id": "savingsRate",
+      "displayName": "Savings Rate",
+      "description": "Percentage of income you save.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
+    },
+    {
+      "id": "behavioralBias",
+      "displayName": "Behavioral Bias",
+      "description": "Tendency to make emotional decisions.",
+      "min": 0,
+      "max": 100,
+      "category": "personal"
     }
   ]
 }

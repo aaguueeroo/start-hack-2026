@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 
-enum GameButtonVariant {
-  primary,
-  success,
-  accent,
-  danger,
-  warning,
-}
+enum GameButtonVariant { primary, success, accent, danger, warning }
 
 class GameButton extends StatelessWidget {
   const GameButton({
@@ -16,15 +10,19 @@ class GameButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.trailing,
     this.variant = GameButtonVariant.primary,
     this.isFullWidth = true,
+    this.padding,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final Widget? trailing;
   final GameButtonVariant variant;
   final bool isFullWidth;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -34,20 +32,19 @@ class GameButton extends StatelessWidget {
       onTap: isEnabled ? onPressed : null,
       child: Container(
         width: isFullWidth ? double.infinity : null,
-        padding: const EdgeInsets.symmetric(
-          horizontal: SpacingConstants.lg,
-          vertical: SpacingConstants.md,
-        ),
+        padding:
+            padding ??
+            const EdgeInsets.symmetric(
+              horizontal: SpacingConstants.lg,
+              vertical: SpacingConstants.md,
+            ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isEnabled
                 ? gradient
-                : [
-                    Colors.grey.shade400,
-                    Colors.grey.shade600,
-                  ],
+                : [Colors.grey.shade400, Colors.grey.shade600],
           ),
           borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
           border: Border.all(
@@ -64,20 +61,22 @@ class GameButton extends StatelessWidget {
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: trailing != null
+              ? MainAxisAlignment.spaceBetween
+              : MainAxisAlignment.center,
           mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
-              ),
-              const SizedBox(width: SpacingConstants.sm),
-            ],
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(width: SpacingConstants.sm),
+                ],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     shadows: [
@@ -103,7 +102,10 @@ class GameButton extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ],
             ),
+            ?trailing,
           ],
         ),
       ),

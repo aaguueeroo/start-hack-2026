@@ -437,6 +437,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  widget_tooltip:
+    dependency: "direct main"
+    description:
+      name: widget_tooltip
+      sha256: "59c6ec9d939c9940b705e73a0bdffa0c46bf16e05d891624021643005b2d6d68"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.1"
   xdg_directories:
     dependency: transitive
     description:

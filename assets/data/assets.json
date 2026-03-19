@@ -1,52 +1,117 @@
 {
   "assets": [
     {
-      "id": "apple_stock",
-      "name": "Apple Stock",
-      "icon": "diamond",
-      "price": 150,
-      "expectedReturn": 5,
-      "volatility": 15
-    },
-    {
-      "id": "index_fund",
-      "name": "Index Fund",
-      "icon": "show_chart",
-      "price": 100,
-      "expectedReturn": 7,
-      "volatility": 10
-    },
-    {
-      "id": "treasury_bond",
-      "name": "Treasury Bond",
-      "icon": "shield",
-      "price": 100,
-      "expectedReturn": 2,
-      "volatility": 2
-    },
-    {
-      "id": "tech_etf",
-      "name": "Tech ETF",
-      "icon": "trending_up",
-      "price": 80,
-      "expectedReturn": 12,
-      "volatility": 25
-    },
-    {
-      "id": "savings_account",
-      "name": "Savings Account",
+      "id": "cash_savings",
+      "name": "Cash / Savings Account",
       "icon": "savings",
       "price": 50,
-      "expectedReturn": 1,
-      "volatility": 0
+      "expectedReturn": 0.25,
+      "volatility": 0,
+      "liquidity": 100,
+      "managementCost": 0,
+      "flavourText": "Safe but silent killer — inflation eats your savings while you sleep"
     },
     {
-      "id": "crypto_fund",
-      "name": "Crypto Fund",
-      "icon": "attach_money",
+      "id": "swiss_bonds",
+      "name": "Swiss Government Bonds (CHF)",
+      "icon": "shield",
+      "price": 100,
+      "expectedReturn": 1.0,
+      "volatility": 1.5,
+      "liquidity": 95,
+      "managementCost": 0.1,
+      "creditRisk": 0,
+      "flavourText": "The Swiss safe haven. Boring, reliable, avoids losing everything to inflation"
+    },
+    {
+      "id": "eu_bonds",
+      "name": "EU Government Bonds (EUR)",
+      "icon": "euro",
+      "price": 100,
+      "expectedReturn": 3.5,
+      "volatility": 4,
+      "liquidity": 90,
+      "managementCost": 0.15,
+      "currencyRisk": 2,
+      "flavourText": "Better yield than Swiss bonds, but Europe brings its own drama"
+    },
+    {
+      "id": "corporate_bonds",
+      "name": "Corporate Bonds",
+      "icon": "business",
+      "price": 120,
+      "expectedReturn": 2.5,
+      "volatility": 6,
+      "liquidity": 70,
+      "managementCost": 0.3,
+      "creditRisk": 2,
+      "flavourText": "Companies pay more than governments to borrow — because they're riskier"
+    },
+    {
+      "id": "reit",
+      "name": "Real Estate Fund (REIT)",
+      "icon": "apartment",
       "price": 200,
+      "expectedReturn": 5.5,
+      "volatility": 12,
+      "liquidity": 50,
+      "managementCost": 0.8,
+      "flavourText": "Bricks and mortar in fund form. Great income, but you can't sell in a panic"
+    },
+    {
+      "id": "smi_fund",
+      "name": "Swiss Index Fund (SMI)",
+      "icon": "show_chart",
+      "price": 150,
+      "expectedReturn": 7.0,
+      "volatility": 15,
+      "liquidity": 95,
+      "managementCost": 0.1,
+      "flavourText": "Switzerland's top 20 companies in one fund. Cheap, diversified, but concentrated"
+    },
+    {
+      "id": "world_etf",
+      "name": "Global Index Fund (World ETF)",
+      "icon": "public",
+      "price": 150,
+      "expectedReturn": 8.0,
+      "volatility": 17,
+      "liquidity": 95,
+      "managementCost": 0.15,
+      "flavourText": "The whole world in one fund. The closest thing to owning everything"
+    },
+    {
+      "id": "single_stocks",
+      "name": "Single Stocks",
+      "icon": "trending_up",
+      "price": 100,
+      "expectedReturn": 10,
+      "volatility": 30,
+      "liquidity": 90,
+      "managementCost": 0.2,
+      "flavourText": "High return potential, high volatility, concentration risk"
+    },
+    {
+      "id": "gold",
+      "name": "Gold / Commodities",
+      "icon": "diamond",
+      "price": 120,
+      "expectedReturn": 3,
+      "volatility": 15,
+      "liquidity": 85,
+      "managementCost": 0.4,
+      "flavourText": "Uncorrelated, inflation hedge, no yield"
+    },
+    {
+      "id": "crypto",
+      "name": "Bitcoin / Crypto",
+      "icon": "attach_money",
+      "price": 80,
       "expectedReturn": 20,
-      "volatility": 50
+      "volatility": 50,
+      "liquidity": 80,
+      "managementCost": 0.5,
+      "flavourText": "Very high return potential, extreme volatility"
     }
   ]
 }

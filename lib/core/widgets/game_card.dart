@@ -8,18 +8,20 @@ class GameCard extends StatelessWidget {
     required this.child,
     this.onTap,
     this.padding,
+    this.backgroundColor,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     final content = Container(
       padding: padding ?? const EdgeInsets.all(SpacingConstants.md),
       decoration: BoxDecoration(
-        color: GameThemeConstants.creamSurface,
+        color: backgroundColor ?? GameThemeConstants.creamSurface,
         borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
         border: Border.all(
           color: GameThemeConstants.outlineColor,

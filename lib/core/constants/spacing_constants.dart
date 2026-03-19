@@ -18,4 +18,6 @@ abstract final class SpacingConstants {
   static const double gameRadiusMd = 16.0;
   static const double gameRadiusLg = 20.0;
   static const double gameRadiusPill = 24.0;
+
+  static const double selectedCharacterSlotHeight = 180.0;
 }

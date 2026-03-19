@@ -6,6 +6,7 @@ class StatSchema {
     this.min,
     this.max,
     this.defaultValue,
+    this.category,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class StatSchema {
   final num? min;
   final num? max;
   final num? defaultValue;
+  final String? category;
 
   factory StatSchema.fromJson(Map<String, dynamic> json) {
     return StatSchema(
@@ -23,6 +25,7 @@ class StatSchema {
       min: json['min'] as num?,
       max: json['max'] as num?,
       defaultValue: json['default'] as num?,
+      category: json['category'] as String?,
     );
   }
 
@@ -34,6 +37,7 @@ class StatSchema {
       if (min != null) 'min': min,
       if (max != null) 'max': max,
       if (defaultValue != null) 'default': defaultValue,
+      if (category != null) 'category': category,
     };
   }
 }

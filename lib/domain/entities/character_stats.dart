@@ -15,6 +15,31 @@ class CharacterStats {
 
   int get annualIncome => get('annualIncome').toInt();
 
+  double get returnStat => get('return').toDouble();
+
+  double get volatility => get('volatility').toDouble();
+
+  double get diversification => get('diversification').toDouble();
+
+  double get sharpeRatio => get('sharpeRatio').toDouble();
+
+  double get managementCostDrag => get('managementCostDrag').toDouble();
+
+  double get liquidityRatio => get('liquidityRatio').toDouble();
+
+  double get taxDrag => get('taxDrag').toDouble();
+
+  double get emotionalReaction => get('emotionalReaction').toDouble();
+
+  double get knowledge => get('knowledge').toDouble();
+
+  int get investmentHorizonRemaining =>
+      get('investmentHorizonRemaining').toInt();
+
+  double get savingsRate => get('savingsRate').toDouble();
+
+  double get behavioralBias => get('behavioralBias').toDouble();
+
   CharacterStats copyWithUpdates(Map<String, num> updates) {
     final newValues = Map<String, num>.from(values);
     for (final entry in updates.entries) {

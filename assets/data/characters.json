@@ -8,9 +8,21 @@
       "initialStats": {
         "money": 10000,
         "riskTolerance": 90,
-        "financialKnowledge": 40,
-        "assetSlots": 4,
-        "annualIncome": 5000
+        "financialKnowledge": 60,
+        "assetSlots": 5,
+        "annualIncome": 5000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 60,
+        "knowledge": 40,
+        "investmentHorizonRemaining": 25,
+        "savingsRate": 18,
+        "behavioralBias": 50
       }
     },
     {
@@ -20,10 +32,22 @@
       "uniqueSkill": "Extra asset slots",
       "initialStats": {
         "money": 8000,
-        "riskTolerance": 60,
+        "riskTolerance": 50,
         "financialKnowledge": 70,
         "assetSlots": 8,
-        "annualIncome": 4000
+        "annualIncome": 5000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 45,
+        "knowledge": 70,
+        "investmentHorizonRemaining": 25,
+        "savingsRate": 18,
+        "behavioralBias": 35
       }
     },
     {
@@ -35,8 +59,20 @@
         "money": 12000,
         "riskTolerance": 20,
         "financialKnowledge": 80,
-        "assetSlots": 4,
-        "annualIncome": 6000
+        "assetSlots": 5,
+        "annualIncome": 5000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 45,
+        "knowledge": 60,
+        "investmentHorizonRemaining": 25,
+        "savingsRate": 25,
+        "behavioralBias": 25
       }
     },
     {
@@ -48,8 +84,20 @@
         "money": 5000,
         "riskTolerance": 70,
         "financialKnowledge": 30,
-        "assetSlots": 4,
-        "annualIncome": 3000
+        "assetSlots": 5,
+        "annualIncome": 5000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 45,
+        "knowledge": 60,
+        "investmentHorizonRemaining": 40,
+        "savingsRate": 18,
+        "behavioralBias": 55
       }
     },
     {
@@ -62,7 +110,19 @@
         "riskTolerance": 50,
         "financialKnowledge": 90,
         "assetSlots": 5,
-        "annualIncome": 7000
+        "annualIncome": 7000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 45,
+        "knowledge": 90,
+        "investmentHorizonRemaining": 15,
+        "savingsRate": 18,
+        "behavioralBias": 40
       }
     },
     {
@@ -75,7 +135,19 @@
         "riskTolerance": 50,
         "financialKnowledge": 60,
         "assetSlots": 5,
-        "annualIncome": 5000
+        "annualIncome": 5000,
+        "return": 0,
+        "volatility": 0,
+        "diversification": 0,
+        "sharpeRatio": 0,
+        "managementCostDrag": 0,
+        "liquidityRatio": 100,
+        "taxDrag": 0,
+        "emotionalReaction": 45,
+        "knowledge": 60,
+        "investmentHorizonRemaining": 25,
+        "savingsRate": 18,
+        "behavioralBias": 40
       }
     }
   ]

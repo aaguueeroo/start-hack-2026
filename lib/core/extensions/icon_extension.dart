@@ -35,6 +35,20 @@ extension IconNameExtension on String {
         return Icons.emoji_events;
       case 'leaderboard':
         return Icons.leaderboard;
+      case 'euro':
+        return Icons.euro;
+      case 'business':
+        return Icons.business;
+      case 'apartment':
+        return Icons.apartment;
+      case 'public':
+        return Icons.public;
+      case 'person':
+        return Icons.person;
+      case 'self_improvement':
+        return Icons.self_improvement;
+      case 'autorenew':
+        return Icons.autorenew;
       default:
         return Icons.help_outline;
     }

@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/data/repositories/game_repository.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
+import 'package:start_hack_2026/domain/entities/owned_item.dart';
 import 'package:start_hack_2026/domain/entities/stat_schema.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
+import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 
 class StoreController extends ChangeNotifier {
@@ -27,8 +29,13 @@ class StoreController extends ChangeNotifier {
 
   Character? get character => _gameEngine.state?.character;
   int get cash => _gameEngine.currentCash;
-  Map<String, num> get stats => _gameEngine.currentStats.values;
+  Map<String, num> get stats => _gameEngine.getDisplayStats(_statsSchema);
+  List<OwnedItem?> get itemSlots => _gameEngine.itemSlots;
+  Map<String, PortfolioAsset> get holdings => _gameEngine.currentHoldings;
   int get currentYear => _gameEngine.state?.currentYear ?? 1;
+  List<PortfolioHistoryPoint> get portfolioHistory =>
+      _gameEngine.portfolioHistory;
+  double get currentPortfolioValue => _gameEngine.currentPortfolioValue;
 
   Future<void> loadStoreData() async {
     _isLoading = true;
@@ -76,13 +83,41 @@ class StoreController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void purchase(StoreItem item) {
+  Future<void> purchase(StoreItem item, {int? replaceAtIndex}) async {
     switch (item) {
       case StoreItemItem():
         buyItem(item);
       case StoreItemAsset():
         buyAsset(item);
     }
+    if (replaceAtIndex != null &&
+        replaceAtIndex >= 0 &&
+        replaceAtIndex < _storeOffer.length) {
+      try {
+        final replacement = await _gameRepository.getRandomStoreItem();
+        _storeOffer = List<StoreItem>.from(_storeOffer);
+        _storeOffer[replaceAtIndex] = replacement;
+        notifyListeners();
+      } catch (e) {
+        if (kDebugMode) {
+          print('Failed to replace store item: $e');
+        }
+      }
+    }
+  }
+
+  bool canCombineItems(int slotA, int slotB) {
+    return _gameEngine.canCombineItems(slotA, slotB);
+  }
+
+  void combineItems(int slotA, int slotB) {
+    _gameEngine.combineItems(slotA, slotB, _statsSchema);
+    notifyListeners();
+  }
+
+  void sellAsset(String assetId) {
+    _gameEngine.sellAsset(assetId);
+    notifyListeners();
   }
 
   void clearError() {

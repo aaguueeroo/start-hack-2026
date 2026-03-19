@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:start_hack_2026/core/constants/character_neutral_stats.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
@@ -16,6 +17,11 @@ const Map<String, String> _statDisplayNames = {
   'financialKnowledge': 'Financial Knowledge',
   'assetSlots': 'Asset Slots',
   'annualIncome': 'Annual Income',
+  'emotionalReaction': 'Emotional Reaction',
+  'knowledge': 'Knowledge',
+  'investmentHorizonRemaining': 'Investment Horizon',
+  'savingsRate': 'Savings Rate',
+  'behavioralBias': 'Behavioral Bias',
 };
 
 class CharacterSelectionScreen extends StatefulWidget {
@@ -61,7 +67,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
             end: Alignment.bottomCenter,
             colors: [
               GameThemeConstants.creamBackground,
-              Color(0xFFF5EDE0),
+              Color.fromARGB(255, 232, 199, 141),
             ],
           ),
         ),
@@ -114,7 +120,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                         const SizedBox(height: SpacingConstants.sm),
                         Text(
                           'Select a character',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: GameThemeConstants.primaryDark,
                               ),
@@ -125,11 +132,11 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1.15,
-                            crossAxisSpacing: SpacingConstants.sm,
-                            mainAxisSpacing: SpacingConstants.sm,
-                          ),
+                                crossAxisCount: 2,
+                                childAspectRatio: 1.5,
+                                crossAxisSpacing: SpacingConstants.sm,
+                                mainAxisSpacing: SpacingConstants.sm,
+                              ),
                           itemCount: controller.characters.length,
                           itemBuilder: (context, index) {
                             final character = controller.characters[index];
@@ -156,8 +163,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                     padding: const EdgeInsets.all(SpacingConstants.md),
                     child: GameButton(
                       label: 'Confirm Choice',
-                      onPressed:
-                          _selectedCharacter != null ? _onConfirmSelection : null,
+                      onPressed: _selectedCharacter != null
+                          ? _onConfirmSelection
+                          : null,
                       variant: GameButtonVariant.primary,
                     ),
                   ),
@@ -187,22 +195,22 @@ class _SelectedCharacterSlot extends StatelessWidget {
         horizontal: SpacingConstants.md,
         vertical: SpacingConstants.sm,
       ),
-      child: selectedCharacter == null
-          ? _buildPlaceholder(context)
-          : _buildSelectedContent(context),
+      child: SizedBox(
+        height: SpacingConstants.selectedCharacterSlotHeight,
+        child: selectedCharacter == null
+            ? _buildPlaceholder(context)
+            : _buildSelectedContent(context),
+      ),
     );
   }
 
   Widget _buildPlaceholder(BuildContext context) {
-    return SizedBox(
-      height: 80,
-      child: Center(
-        child: Text(
-          '?',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                color: GameThemeConstants.outlineColorLight,
-                fontWeight: FontWeight.w300,
-              ),
+    return Center(
+      child: Text(
+        '?',
+        style: Theme.of(context).textTheme.displayLarge?.copyWith(
+          color: GameThemeConstants.outlineColorLight,
+          fontWeight: FontWeight.w300,
         ),
       ),
     );
@@ -210,63 +218,97 @@ class _SelectedCharacterSlot extends StatelessWidget {
 
   Widget _buildSelectedContent(BuildContext context) {
     final character = selectedCharacter!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(
-          character.icon.toIconData(),
-          size: 48,
-          color: GameThemeConstants.primaryDark,
-        ),
-        const SizedBox(height: SpacingConstants.xs),
-        Text(
-          character.name,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: GameThemeConstants.primaryDark,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: SpacingConstants.xs),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: SpacingConstants.sm,
-            vertical: SpacingConstants.xs,
-          ),
-          decoration: BoxDecoration(
-            color: GameThemeConstants.accentLight.withValues(alpha: 0.3),
-            borderRadius:
-                BorderRadius.circular(SpacingConstants.gameRadiusSm),
-            border: Border.all(
-              color: GameThemeConstants.outlineColor,
-              width: GameThemeConstants.outlineThicknessSmall,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Icon(
+                        character.icon.toIconData(),
+                        size: 200,
+                        color: GameThemeConstants.primaryDark,
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: SpacingConstants.xs),
+                  child: Text(
+                    character.name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: GameThemeConstants.primaryDark,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Text(
-            character.uniqueSkill,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: GameThemeConstants.outlineColorLight,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: SpacingConstants.sm),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: SpacingConstants.sm,
-          runSpacing: SpacingConstants.xs,
-          children: character.initialStats.entries.map((entry) {
-            return Text(
-              '${onStatDisplayName(entry.key)}: ${_formatStatValue(entry.key, entry.value)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GameThemeConstants.primaryDark,
-                    fontWeight: FontWeight.w500,
+          const SizedBox(width: SpacingConstants.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...character.initialStats.entries
+                    .where((entry) =>
+                        CharacterNeutralStats.differsFromNeutral(
+                          entry.key,
+                          entry.value,
+                        ))
+                    .map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: SpacingConstants.xs),
+                    child: Text(
+                      '${onStatDisplayName(entry.key)}: ${_formatStatValue(entry.key, entry.value)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: GameThemeConstants.primaryDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: SpacingConstants.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SpacingConstants.sm,
+                    vertical: SpacingConstants.xs,
                   ),
-            );
-          }).toList(),
-        ),
-      ],
+                  decoration: BoxDecoration(
+                    color: GameThemeConstants.accentLight.withValues(
+                      alpha: 0.3,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      SpacingConstants.gameRadiusSm,
+                    ),
+                    border: Border.all(
+                      color: GameThemeConstants.outlineColor,
+                      width: GameThemeConstants.outlineThicknessSmall,
+                    ),
+                  ),
+                  child: Text(
+                    character.uniqueSkill,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: GameThemeConstants.outlineColorLight,
+                    ),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -293,16 +335,14 @@ class _CharacterListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GameCard(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(
-        horizontal: SpacingConstants.sm,
-        vertical: SpacingConstants.xs,
-      ),
+      padding: EdgeInsets.zero,
       child: Container(
         decoration: isSelected
             ? BoxDecoration(
                 color: GameThemeConstants.primaryLight.withValues(alpha: 0.15),
-                borderRadius:
-                    BorderRadius.circular(SpacingConstants.gameRadiusSm),
+                borderRadius: BorderRadius.circular(
+                  SpacingConstants.gameRadiusSm,
+                ),
               )
             : null,
         child: Column(
@@ -316,9 +356,9 @@ class _CharacterListItem extends StatelessWidget {
             const SizedBox(height: SpacingConstants.xs),
             Text(
               character.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

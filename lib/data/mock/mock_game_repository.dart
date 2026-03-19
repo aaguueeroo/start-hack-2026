@@ -1,3 +1,5 @@
+import 'dart:math' show Random;
+
 import 'package:start_hack_2026/data/loaders/json_data_loader.dart';
 import 'package:start_hack_2026/data/repositories/game_repository.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
@@ -50,7 +52,18 @@ class MockGameRepository implements GameRepository {
   Future<List<StoreItem>> getStoreOffer({int itemCount = 4}) async {
     final items = await getStoreItems();
     final assets = await getStoreAssets();
-    final combined = [...items, ...assets]..shuffle();
+    final combined = [...items, ...assets]..shuffle(Random());
     return combined.take(itemCount).toList();
+  }
+
+  @override
+  Future<StoreItem> getRandomStoreItem() async {
+    final items = await getStoreItems();
+    final assets = await getStoreAssets();
+    final combined = [...items, ...assets];
+    if (combined.isEmpty) {
+      throw StateError('No store items available');
+    }
+    return combined[Random().nextInt(combined.length)];
   }
 }
