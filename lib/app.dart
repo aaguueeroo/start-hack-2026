@@ -5,6 +5,8 @@ import 'package:start_hack_2026/core/constants/app_constants.dart';
 import 'package:start_hack_2026/core/theme/game_theme.dart';
 import 'package:start_hack_2026/data/loaders/json_data_loader.dart';
 import 'package:start_hack_2026/data/mock/mock_game_repository.dart';
+import 'package:start_hack_2026/data/services/local_leaderboard_service.dart';
+import 'package:start_hack_2026/data/services/supabase_leaderboard_service.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/features/achievements/achievements_screen.dart';
 import 'package:start_hack_2026/features/character_selection/character_selection_screen.dart';
@@ -13,6 +15,7 @@ import 'package:start_hack_2026/features/leaderboard/leaderboard_screen.dart';
 import 'package:start_hack_2026/features/simulation/simulation_screen.dart';
 import 'package:start_hack_2026/features/store/store_screen.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
+import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
@@ -50,6 +53,18 @@ class App extends StatelessWidget {
           create: (context) => SimulationController(
             gameEngine: context.read<GameEngine>(),
             gameRepository: context.read<MockGameRepository>(),
+          ),
+        ),
+        Provider<LocalLeaderboardService>(
+          create: (_) => LocalLeaderboardService(),
+        ),
+        Provider<SupabaseLeaderboardService>(
+          create: (_) => SupabaseLeaderboardService(),
+        ),
+        ChangeNotifierProvider<LeaderboardController>(
+          create: (context) => LeaderboardController(
+            localService: context.read<LocalLeaderboardService>(),
+            supabaseService: context.read<SupabaseLeaderboardService>(),
           ),
         ),
       ],
