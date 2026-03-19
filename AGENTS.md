@@ -47,7 +47,7 @@ lib/
 - `characters.json` – initialStats, uniqueSkill
 - `items.json` – Knowledge items (statEffects, level, price)
 - `assets.json` – Financial assets (expectedReturn, volatility, liquidity, managementCost)
-- `events.json` – Market events (durationMonths, marketImpact, riskyAssetImpact, safeAssetImpact, probability)
+- `events.json` – Market events: `marketImpact`, `riskyAssetImpact`, `safeAssetImpact`, `probability` (relative weight), optional `durationMonthsRange` `[min,max]`, optional `descriptions` (random headline per trigger; falls back to `description`)
 - `stats_schema.json` – Stat metadata (displayName, min, max, category)
 
 ### Engines
@@ -62,7 +62,7 @@ lib/
 - 12 months, 4 ticks/month, 48 ticks total
 - Monthly savings added at end of month (`(tick + 1) % ticksPerMonth == 0`)
 - Events: market/world/character, duration, impact on risky vs safe assets (volatility ≥ 12 = risky)
-- Event probability ~0.005–0.009 per tick, 2-month cooldown
+- Events: master trigger roll per tick after cooldown, then weighted pick by `probability`; ~80% avoid repeating the same `id` as the previous event (repeats still possible, with a new random `descriptions` line); 2-month cooldown
 - `getActiveEvents()` – current active events and their impact
 
 ## UI Conventions

@@ -117,6 +117,7 @@ class SimulationEngine {
     /// Active events: each entry is (eventConfig, startMonth).
     final activeEvents = <_TrackedActiveEvent>[];
     double? lastEventMonth;
+    String? lastTriggeredEventId;
 
     /// Cooldown: don't trigger a new event within this many months of the last.
     const eventCooldownMonths = 2.0;
@@ -139,12 +140,17 @@ class SimulationEngine {
       final canTrigger = lastEventMonth == null ||
           (currentMonth - lastEventMonth) >= eventCooldownMonths;
       final newEventConfig = canTrigger
-          ? _maybeTriggerEvent(eventPool, _random)
+          ? _maybeTriggerEvent(
+              eventPool,
+              _random,
+              lastEventId: lastTriggeredEventId,
+            )
           : null;
-      if (newEventConfig != null) lastEventMonth = currentMonth;
       if (newEventConfig != null) {
+        lastEventMonth = currentMonth;
+        lastTriggeredEventId = newEventConfig['id'] as String?;
         final durationMonths =
-            (newEventConfig['durationMonths'] as num?)?.toDouble() ?? 1.0;
+            _resolveDurationMonths(newEventConfig, _random);
         activeEvents.add(_TrackedActiveEvent(
           config: newEventConfig,
           startMonth: currentMonth,
@@ -229,7 +235,7 @@ class SimulationEngine {
             newEventConfig['type'] as String? ?? 'world',
           ),
           title: newEventConfig['title'] as String? ?? 'Event',
-          description: newEventConfig['description'] as String? ?? '',
+          description: _pickDescriptionFromConfig(newEventConfig, _random),
           portfolioValueAtEvent: portfolioValue,
         );
       }
@@ -304,18 +310,74 @@ class SimulationEngine {
     );
   }
 
+  /// Chance per eligible tick (after cooldown) that any market event may start.
+  static const double _eventTriggerChance = 0.042;
+
+  /// Prefer a different event than the last one; repeats still occur ~20% of the time.
+  static const double _avoidSameEventChance = 0.80;
+
   Map<String, dynamic>? _maybeTriggerEvent(
     List<Map<String, dynamic>> pool,
-    Random random,
-  ) {
+    Random random, {
+    String? lastEventId,
+  }) {
     if (pool.isEmpty) return null;
-    for (final event in pool) {
-      final probability = (event['probability'] as num?)?.toDouble() ?? 0.006;
-      if (random.nextDouble() < probability) {
-        return event;
+    if (random.nextDouble() >= _eventTriggerChance) return null;
+
+    var candidates = List<Map<String, dynamic>>.from(pool);
+    if (lastEventId != null &&
+        lastEventId.isNotEmpty &&
+        candidates.length > 1 &&
+        random.nextDouble() < _avoidSameEventChance) {
+      final filtered = candidates
+          .where((e) => (e['id'] as String?) != lastEventId)
+          .toList();
+      if (filtered.isNotEmpty) {
+        candidates = filtered;
       }
     }
-    return null;
+
+    var totalWeight = 0.0;
+    for (final e in candidates) {
+      final w = (e['probability'] as num?)?.toDouble() ?? 1.0;
+      if (w > 0) totalWeight += w;
+    }
+    if (totalWeight <= 0) return null;
+
+    var roll = random.nextDouble() * totalWeight;
+    for (final e in candidates) {
+      final w = (e['probability'] as num?)?.toDouble() ?? 1.0;
+      if (w <= 0) continue;
+      roll -= w;
+      if (roll <= 0) return e;
+    }
+    return candidates.last;
+  }
+
+  double _resolveDurationMonths(Map<String, dynamic> config, Random random) {
+    final range = config['durationMonthsRange'];
+    if (range is List && range.length >= 2) {
+      final lo = (range[0] as num).round();
+      final hi = (range[1] as num).round();
+      if (hi >= lo && lo > 0) {
+        return (lo + random.nextInt(hi - lo + 1)).toDouble();
+      }
+    }
+    return (config['durationMonths'] as num?)?.toDouble() ?? 1.0;
+  }
+
+  String _pickDescriptionFromConfig(
+    Map<String, dynamic> config,
+    Random random,
+  ) {
+    final variants = config['descriptions'];
+    if (variants is List && variants.isNotEmpty) {
+      final strings = variants.whereType<String>().toList();
+      if (strings.isNotEmpty) {
+        return strings[random.nextInt(strings.length)];
+      }
+    }
+    return config['description'] as String? ?? '';
   }
 
 }
