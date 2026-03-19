@@ -1,13 +1,12 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
-import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
+import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
@@ -60,7 +59,6 @@ class GameWonScreen extends StatelessWidget {
                   children: [
                     _WinHeader(
                       winMessage: winConditions?.winMessage ?? 'You won!',
-                      winIcon: winConditions?.winIcon ?? 'emoji_events',
                       characterName: character.name,
                     ),
                     const SizedBox(height: 24),
@@ -93,13 +91,13 @@ class GameWonScreen extends StatelessWidget {
 class _WinHeader extends StatelessWidget {
   const _WinHeader({
     required this.winMessage,
-    required this.winIcon,
     required this.characterName,
   });
 
   final String winMessage;
-  final String winIcon;
   final String characterName;
+
+  static const String _trophyAssetPath = 'assets/images/image.png';
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +106,15 @@ class _WinHeader extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(
-              winIcon.toIconData(),
-              size: 64,
-              color: GameThemeConstants.successDark,
+            Image.asset(
+              _trophyAssetPath,
+              height: 120,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Icon(
+                Icons.emoji_events,
+                size: 64,
+                color: GameThemeConstants.successDark,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -166,167 +169,18 @@ class _PortfolioEvolutionSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your Journey',
+              'Portfolio Evolution',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 16),
-            if (portfolioHistory.length >= 2)
-              _PortfolioChart(dataPoints: portfolioHistory)
-            else
-              _SingleValueDisplay(value: finalValue),
+            PortfolioEvolutionChart(dataPoints: portfolioHistory),
             const SizedBox(height: 16),
             _FinalStatsRow(
               finalValue: finalValue,
               yearsPlayed: yearsPlayed,
               growthPercent: growthPercent,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PortfolioChart extends StatelessWidget {
-  const _PortfolioChart({required this.dataPoints});
-
-  final List<PortfolioHistoryPoint> dataPoints;
-
-  @override
-  Widget build(BuildContext context) {
-    final spots = dataPoints
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value.value))
-        .toList();
-    final values = dataPoints.map((p) => p.value).toList();
-    final minVal = values.reduce((a, b) => a < b ? a : b);
-    final maxVal = values.reduce((a, b) => a > b ? a : b);
-    var minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
-    var maxY = (maxVal * 1.05).toDouble();
-    if (maxY <= minY) maxY = minY + 1;
-    return SizedBox(
-      height: 200,
-      child: LineChart(
-        LineChartData(
-          minX: 0,
-          maxX: (dataPoints.length - 1).toDouble(),
-          minY: minY,
-          maxY: maxY,
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: GameThemeConstants.primaryDark,
-              barWidth: 2,
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (spot, percent, barData, index) =>
-                    FlDotCirclePainter(
-                  radius: 3,
-                  color: GameThemeConstants.primaryDark,
-                  strokeWidth: GameThemeConstants.outlineThicknessSmall,
-                  strokeColor: GameThemeConstants.outlineColor,
-                ),
-              ),
-              belowBarData: BarAreaData(
-                show: true,
-                color: GameThemeConstants.primaryDark.withValues(alpha: 0.2),
-              ),
-            ),
-          ],
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 36,
-                getTitlesWidget: (value, meta) => Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: GameThemeConstants.outlineColor,
-                  ),
-                ),
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 20,
-                getTitlesWidget: (value, meta) {
-                  final index = value.round();
-                  if (index >= 0 && index < dataPoints.length) {
-                    return Text(
-                      'Y${dataPoints[index].year}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: GameThemeConstants.outlineColor,
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: true,
-            horizontalInterval: (maxY - minY) / 4,
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: GameThemeConstants.outlineColor.withValues(alpha: 0.2),
-              strokeWidth: 1,
-            ),
-            getDrawingVerticalLine: (value) => FlLine(
-              color: GameThemeConstants.outlineColor.withValues(alpha: 0.2),
-              strokeWidth: 1,
-            ),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(
-              color: GameThemeConstants.outlineColor,
-              width: GameThemeConstants.outlineThicknessSmall,
-            ),
-          ),
-        ),
-        duration: const Duration(milliseconds: 150),
-      ),
-    );
-  }
-}
-
-class _SingleValueDisplay extends StatelessWidget {
-  const _SingleValueDisplay({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 80,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Final Portfolio',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: GameThemeConstants.outlineColorLight,
-                  ),
-            ),
-            Text(
-              '\$${value.toStringAsFixed(0)}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: GameThemeConstants.primaryDark,
-                  ),
             ),
           ],
         ),

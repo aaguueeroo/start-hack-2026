@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +6,7 @@ import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
@@ -307,6 +307,24 @@ class _StatsOverlayState extends State<_StatsOverlay> {
   }
 }
 
+const _statIcons = <String, IconData>{
+  'money': Icons.attach_money,
+  'assetSlots': Icons.grid_view,
+  'monthlySavings': Icons.savings,
+  'return': Icons.trending_up,
+  'volatility': Icons.show_chart,
+  'diversification': Icons.pie_chart,
+  'sharpeRatio': Icons.bar_chart,
+  'managementCostDrag': Icons.percent,
+  'liquidityRatio': Icons.water_drop,
+  'taxDrag': Icons.receipt_long,
+  'emotionalReaction': Icons.psychology,
+  'knowledge': Icons.school,
+  'investmentHorizonRemaining': Icons.schedule,
+  'savingsRate': Icons.savings,
+  'behavioralBias': Icons.psychology,
+};
+
 class _StatsPopup extends StatelessWidget {
   const _StatsPopup({required this.stats, required this.schema});
 
@@ -444,6 +462,7 @@ class _StatsPopup extends StatelessWidget {
                                 stat: stat,
                                 value: stats[stat.id] ?? 0,
                                 showInfoTooltip: false,
+                                icon: _statIcons[stat.id],
                               ),
                             ),
                           ],
@@ -466,6 +485,7 @@ class _StatsPopup extends StatelessWidget {
                                 stat: stat,
                                 value: stats[stat.id] ?? 0,
                                 showInfoTooltip: false,
+                                icon: _statIcons[stat.id],
                               ),
                             ),
                           ],
@@ -649,7 +669,7 @@ class _PortfolioPopup extends StatelessWidget {
                 if (isEmpty)
                   _PortfolioEmptyState(currentValue: currentPortfolioValue)
                 else
-                  _PortfolioChart(dataPoints: dataPoints),
+                  PortfolioEvolutionChart(dataPoints: dataPoints),
               ],
             ),
           ),
@@ -695,121 +715,6 @@ class _PortfolioEmptyState extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PortfolioChart extends StatelessWidget {
-  const _PortfolioChart({required this.dataPoints});
-
-  final List<PortfolioHistoryPoint> dataPoints;
-
-  @override
-  Widget build(BuildContext context) {
-    final spots = dataPoints
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value.value))
-        .toList();
-    final values = dataPoints.map((p) => p.value).toList();
-    final minVal = values.reduce((a, b) => a < b ? a : b);
-    final maxVal = values.reduce((a, b) => a > b ? a : b);
-    var minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
-    var maxY = (maxVal * 1.05).toDouble();
-    if (maxY <= minY) maxY = minY + 1;
-    return SizedBox(
-      height: 240,
-      child: LineChart(
-        LineChartData(
-          minX: 0,
-          maxX: (dataPoints.length - 1).toDouble(),
-          minY: minY,
-          maxY: maxY,
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: GameThemeConstants.primaryDark,
-              barWidth: 2,
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (spot, percent, barData, index) =>
-                    FlDotCirclePainter(
-                      radius: 3,
-                      color: GameThemeConstants.primaryDark,
-                      strokeWidth: GameThemeConstants.outlineThicknessSmall,
-                      strokeColor: GameThemeConstants.outlineColor,
-                    ),
-              ),
-              belowBarData: BarAreaData(
-                show: true,
-                color: GameThemeConstants.primaryDark.withValues(alpha: 0.2),
-              ),
-            ),
-          ],
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 36,
-                getTitlesWidget: (value, meta) => Text(
-                  value.toInt().toString(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: GameThemeConstants.outlineColor,
-                  ),
-                ),
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 20,
-                getTitlesWidget: (value, meta) {
-                  final index = value.round();
-                  if (index >= 0 && index < dataPoints.length) {
-                    return Text(
-                      'Y${dataPoints[index].year}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: GameThemeConstants.outlineColor,
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: true,
-            horizontalInterval: (maxY - minY) / 4,
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: GameThemeConstants.outlineColor.withValues(alpha: 0.2),
-              strokeWidth: 1,
-            ),
-            getDrawingVerticalLine: (value) => FlLine(
-              color: GameThemeConstants.outlineColor.withValues(alpha: 0.2),
-              strokeWidth: 1,
-            ),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(
-              color: GameThemeConstants.outlineColor,
-              width: GameThemeConstants.outlineThicknessSmall,
-            ),
-          ),
-        ),
-        duration: const Duration(milliseconds: 150),
       ),
     );
   }
@@ -1695,11 +1600,13 @@ class _StatRow extends StatelessWidget {
     required this.stat,
     required this.value,
     this.showInfoTooltip = true,
+    this.icon,
   });
 
   final StatSchema stat;
   final num value;
   final bool showInfoTooltip;
+  final IconData? icon;
 
   Color _getStatColor() {
     if (value > 0) return GameThemeConstants.statPositive;
@@ -1755,6 +1662,10 @@ class _StatRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: SpacingConstants.xs),
       child: Row(
         children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: SpacingConstants.xs),
+          ],
           Expanded(
             child: Text(stat.displayName, style: TextStyle(color: color)),
           ),
