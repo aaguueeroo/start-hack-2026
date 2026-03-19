@@ -16,6 +16,20 @@ import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 import 'package:widget_tooltip/widget_tooltip.dart';
 
+double? _getBaselineValueForComparison(StoreController controller) {
+  final currentYear = controller.currentYear;
+  if (currentYear > 1) {
+    final lastYearPoint = controller.portfolioHistory
+        .where((p) => p.year == currentYear - 1)
+        .firstOrNull;
+    return lastYearPoint?.value;
+  }
+  final year1Point = controller.portfolioHistory
+      .where((p) => p.year == 1)
+      .firstOrNull;
+  return year1Point?.value;
+}
+
 class StoreScreen extends StatefulWidget {
   const StoreScreen({super.key});
 
@@ -90,26 +104,6 @@ class _StoreScreenState extends State<StoreScreen> {
               onPressed: () => context.pop(),
             ),
             actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: SpacingConstants.sm),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.monetization_on,
-                      color: GameThemeConstants.warningLight,
-                      size: 24,
-                    ),
-                    const SizedBox(width: SpacingConstants.sm),
-                    Text(
-                      '${controller.cash}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               GestureDetector(
                 onLongPressDown: (_) =>
                     _showPortfolioOverlay(context, controller),
@@ -200,6 +194,9 @@ class _StoreScreenState extends State<StoreScreen> {
                           onPurchase: (item, index) =>
                               controller.purchase(item, replaceAtIndex: index),
                           statsSchema: controller.statsSchema,
+                          totalCapital: controller.currentPortfolioValue,
+                          baselineValue: _getBaselineValueForComparison(controller),
+                          cash: controller.cash,
                         ),
                         const SizedBox(height: SpacingConstants.lg),
                         _ItemSlotsSection(
@@ -844,23 +841,103 @@ class _BuySection extends StatelessWidget {
     required this.canBuy,
     required this.onPurchase,
     required this.statsSchema,
+    required this.totalCapital,
+    required this.baselineValue,
+    required this.cash,
   });
 
   final List<StoreItem> storeOffer;
   final bool Function(StoreItem) canBuy;
   final void Function(StoreItem item, int index) onPurchase;
   final List<StatSchema> statsSchema;
+  final double totalCapital;
+  final double? baselineValue;
+  final int cash;
 
   @override
   Widget build(BuildContext context) {
+    final hasComparison = baselineValue != null;
+    final diff = hasComparison ? totalCapital - baselineValue! : 0.0;
+    final isGrowing = diff > 0;
+    final isDecreasing = diff < 0;
+    final valueColor = isGrowing
+        ? GameThemeConstants.statPositive
+        : isDecreasing
+            ? GameThemeConstants.statNegative
+            : GameThemeConstants.primaryDark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Buy Assets',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Your Total Capital',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: GameThemeConstants.outlineColorLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: SpacingConstants.xs),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (hasComparison) ...[
+                    Icon(
+                      isGrowing
+                          ? Icons.arrow_drop_up
+                          : isDecreasing
+                              ? Icons.arrow_drop_down
+                              : Icons.remove,
+                      size: 48,
+                      color: valueColor,
+                    ),
+                    const SizedBox(width: SpacingConstants.xs),
+                  ],
+                  Text(
+                    '\$${totalCapital.toStringAsFixed(0)}',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 48,
+                      color: valueColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: SpacingConstants.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Buy Assets',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.monetization_on,
+                  color: GameThemeConstants.warningLight,
+                  size: 24,
+                ),
+                const SizedBox(width: SpacingConstants.sm),
+                Text(
+                  '$cash',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         const SizedBox(height: SpacingConstants.sm),
         _StoreGrid(
