@@ -1779,6 +1779,14 @@ class _AssetTooltipContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
+            asset.name,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: GameThemeConstants.primaryDark,
+            ),
+          ),
+          const SizedBox(height: SpacingConstants.xs),
+          Text(
             'Total Return: ${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: totalReturnColor,
