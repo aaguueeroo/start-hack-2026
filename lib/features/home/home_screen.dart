@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
                 const Spacer(),
                 Image.asset(
                   'assets/images/logo_home.png',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return Text(
                       AppConstants.appName,

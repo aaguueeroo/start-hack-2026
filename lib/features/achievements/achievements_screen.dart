@@ -85,14 +85,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'panic_seller',
         title: 'Panic Seller',
         description: 'Sell an asset right before it goes up in value.',
-        icon: Icons.trending_down,
+        imageAsset: 'assets/images/achievements/panic.png',
         color: GameThemeConstants.dangerDark,
       ),
       _AchievementRule(
         id: 'bookworm_investor',
         title: 'Bookworm Investor',
         description: 'Buy your first knowledge item.',
-        icon: Icons.menu_book,
+        imageAsset: 'assets/images/achievements/bookworm.png',
         color: GameThemeConstants.primaryDark,
         isUnlockedNow: hasKnowledgeItem,
       ),
@@ -100,7 +100,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         id: 'mba',
         title: 'MBA',
         description: 'Merge knowledge items to reach level 3.',
-        icon: Icons.school,
+        imageAsset: 'assets/images/achievements/mba.png',
         color: GameThemeConstants.skyBlueDark,
         isUnlockedNow: hasLevel3Knowledge,
       ),
@@ -109,7 +109,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: "Don't Put All Eggs in One Basket",
         description:
             'Reach a diversification score of at least 30 with a balanced portfolio.',
-        icon: Icons.pie_chart,
+        imageAsset: 'assets/images/achievements/egg.png',
         color: GameThemeConstants.accentDark,
         isUnlockedNow: diversification >= 30,
       ),
@@ -118,14 +118,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: 'Buy High, Cry Later',
         description:
             'Purchase an asset and end the same simulation year at a loss.',
-        icon: Icons.sentiment_very_dissatisfied,
+        imageAsset: 'assets/images/achievements/cry.png',
         color: GameThemeConstants.orangeDark,
       ),
       const _AchievementRule(
         id: 'hands_in_pockets',
         title: 'Hands in Pockets',
         description: 'Start a store phase and buy absolutely nothing.',
-        icon: Icons.do_not_touch,
+        imageAsset: 'assets/images/achievements/pocket.png',
         color: GameThemeConstants.warningDark,
       ),
       _AchievementRule(
@@ -133,7 +133,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: 'Instant Noodle to IPO',
         description:
             'Finish a simulation with portfolio value at least 2x your starting money.',
-        icon: Icons.rocket_launch,
+        imageAsset: 'assets/images/achievements/noodle.png',
         color: GameThemeConstants.successDark,
         isUnlockedNow: startingCash > 0 && currentCash >= (startingCash * 2),
       ),
@@ -142,7 +142,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: 'Crash Test Investor',
         description:
             'Survive a market crash event and still end the year positive.',
-        icon: Icons.car_crash,
+        imageAsset: 'assets/images/achievements/crash.png',
         color: GameThemeConstants.dangerDark,
       ),
       const _AchievementRule(
@@ -150,7 +150,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: 'Grip of Steel',
         description:
             'Hold a volatile asset through a full simulation without selling.',
-        icon: Icons.fitness_center,
+        imageAsset: 'assets/images/achievements/steel.png',
         color: GameThemeConstants.primaryDark,
       ),
     ];
@@ -186,10 +186,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              GameThemeConstants.creamBackground,
-              Color(0xFFF5EDE0),
-            ],
+            colors: [GameThemeConstants.creamBackground, Color(0xFFF5EDE0)],
           ),
         ),
         child: ListView(
@@ -199,9 +196,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               'Every achievement marks a lesson: experiment, adapt, and build your investor instincts one decision at a time.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: GameThemeConstants.outlineColorLight,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: GameThemeConstants.outlineColorLight,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: SpacingConstants.lg),
             ...achievements.map(
@@ -221,10 +218,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 }
 
 class _AchievementCard extends StatelessWidget {
-  const _AchievementCard({
-    required this.achievement,
-    required this.isUnlocked,
-  });
+  const _AchievementCard({required this.achievement, required this.isUnlocked});
 
   final _AchievementRule achievement;
   final bool isUnlocked;
@@ -232,8 +226,9 @@ class _AchievementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconColor = isUnlocked ? achievement.color : Colors.grey.shade500;
-    final textColor =
-        isUnlocked ? GameThemeConstants.outlineColor : Colors.grey.shade700;
+    final textColor = isUnlocked
+        ? GameThemeConstants.outlineColor
+        : Colors.grey.shade700;
     final subtitleColor = isUnlocked
         ? GameThemeConstants.outlineColorLight
         : Colors.grey.shade600;
@@ -251,12 +246,58 @@ class _AchievementCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(SpacingConstants.radiusMd),
-              border: Border.all(
-                color: iconColor,
-                width: 2,
-              ),
+              border: Border.all(color: iconColor, width: 2),
             ),
-            child: Icon(achievement.icon, color: iconColor),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(SpacingConstants.radiusMd),
+              child: isUnlocked
+                  ? Image.asset(
+                      achievement.imageAsset,
+                      fit: BoxFit.cover,
+                      width: 48,
+                      height: 48,
+                      errorBuilder:
+                          (
+                            BuildContext context,
+                            Object error,
+                            StackTrace? stackTrace,
+                          ) =>
+                              Icon(Icons.image_not_supported, color: iconColor),
+                    )
+                  : ColorFiltered(
+                      colorFilter: const ColorFilter.matrix(<double>[
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                      ]),
+                      child: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Image.asset(
+                          achievement.imageAsset,
+                          fit: BoxFit.contain,
+                          width: 48,
+                          height: 48,
+                        ),
+                      ),
+                    ),
+            ),
           ),
           const SizedBox(width: SpacingConstants.md),
           Expanded(
@@ -266,16 +307,16 @@ class _AchievementCard extends StatelessWidget {
                 Text(
                   achievement.title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: textColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: SpacingConstants.xs),
                 Text(
                   achievement.description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: subtitleColor,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: subtitleColor),
                 ),
               ],
             ),
@@ -283,8 +324,9 @@ class _AchievementCard extends StatelessWidget {
           const SizedBox(width: SpacingConstants.sm),
           Icon(
             isUnlocked ? Icons.check_circle : Icons.lock_outline,
-            color:
-                isUnlocked ? GameThemeConstants.successDark : Colors.grey.shade500,
+            color: isUnlocked
+                ? GameThemeConstants.successDark
+                : Colors.grey.shade500,
             size: 20,
           ),
         ],
@@ -298,7 +340,7 @@ class _AchievementRule {
     required this.id,
     required this.title,
     required this.description,
-    required this.icon,
+    required this.imageAsset,
     required this.color,
     this.isUnlockedNow = false,
   });
@@ -306,7 +348,7 @@ class _AchievementRule {
   final String id;
   final String title;
   final String description;
-  final IconData icon;
+  final String imageAsset;
   final Color color;
   final bool isUnlockedNow;
 }
