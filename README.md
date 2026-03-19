@@ -69,16 +69,77 @@ Here is a sample list of potential achievements:
 - **Grip of Steel**  
   Hold a volatile asset through a full simulation without selling.
 
-## Getting Started
+## Project setup
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- [Flutter](https://docs.flutter.dev/get-started/install) installed and on your `PATH` (stable channel is fine).
+- This app targets **Dart SDK ^3.11.1** (see `pubspec.yaml`). Run `flutter --version` and upgrade Flutter if `dart --version` is too old.
 
+### 1. Install dependencies
+
+Open a terminal in the project root (the folder that contains `pubspec.yaml`), then:
+
+```bash
+flutter pub get
+```
+
+If you are cloning fresh:
+
+```bash
+git clone <REPOSITORY_URL>
+cd start-hack-2026
+flutter pub get
+```
+
+### 2. Environment (optional — Supabase / leaderboard)
+
+The app runs without Supabase; leaderboard features fall back to local data when credentials are missing.
+
+To enable Supabase, create a `.env` file in the project root (same folder as `pubspec.yaml`). It is gitignored:
+
+```bash
+touch .env
+```
+
+Add your project URL and anon key:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+Alternatively, pass them at build/run time:
+
+```bash
+flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 3. Run the app
+
+List devices, then run on one of them:
+
+```bash
+flutter devices
+flutter run
+```
+
+Examples for a specific target:
+
+```bash
+flutter run -d chrome
+flutter run -d macos
+flutter run -d ios
+```
+
+### 4. Checks (optional)
+
+```bash
+flutter analyze
+flutter test
+```
+
+### Further reading
+
+- [Flutter documentation](https://docs.flutter.dev/)
 - [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
