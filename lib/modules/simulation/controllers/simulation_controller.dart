@@ -38,6 +38,9 @@ class SimulationController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double get lastPortfolioValue => _lastPortfolioValue;
   int get currentYear => _gameEngine.state?.currentYear ?? 1;
+  int get maxRounds => GameEngine.maxRounds;
+  bool get canPlayNextRound => currentYear <= maxRounds;
+  bool get hasReachedRoundLimit => !canPlayNextRound;
 
   /// Returns the currently active market events and their impact.
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(_activeEvents);
@@ -53,6 +56,13 @@ class SimulationController extends ChangeNotifier {
   }
 
   Future<void> startSimulation() async {
+    if (!canPlayNextRound) {
+      _status = SimulationStatus.complete;
+      _errorMessage = 'Maximum of $maxRounds rounds reached.';
+      notifyListeners();
+      return;
+    }
+
     _status = SimulationStatus.running;
     // Load cumulative data from previous years (don't reset)
     _dataPoints = List.from(_gameEngine.cumulativeSimulationDataPoints);

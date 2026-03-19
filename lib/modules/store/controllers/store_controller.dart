@@ -44,6 +44,9 @@ class StoreController extends ChangeNotifier {
   List<OwnedItem?> get itemSlots => _gameEngine.itemSlots;
   Map<String, PortfolioAsset> get holdings => _gameEngine.currentHoldings;
   int get currentYear => _gameEngine.state?.currentYear ?? 1;
+  int get maxRounds => GameEngine.maxRounds;
+  bool get canPlayNextRound => currentYear <= maxRounds;
+  bool get hasReachedRoundLimit => !canPlayNextRound;
   List<PortfolioHistoryPoint> get portfolioHistory =>
       _gameEngine.portfolioHistory;
   double get currentPortfolioValue => _gameEngine.currentPortfolioValue;
