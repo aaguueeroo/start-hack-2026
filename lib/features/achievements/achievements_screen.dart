@@ -1,13 +1,71 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/data/local/achievement_preferences.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
 
-class AchievementsScreen extends StatelessWidget {
+class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
+
+  @override
+  State<AchievementsScreen> createState() => _AchievementsScreenState();
+}
+
+class _AchievementsScreenState extends State<AchievementsScreen> {
+  final AchievementPreferences _achievementPreferences =
+      AchievementPreferences();
+
+  Set<String> _persistedUnlockedIds = <String>{};
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPersistedAchievements();
+  }
+
+  Future<void> _loadPersistedAchievements() async {
+    final unlockedIds = await _achievementPreferences.getUnlockedIds();
+    if (!mounted) return;
+    setState(() {
+      _persistedUnlockedIds = unlockedIds;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveUnlockedIdsIfNeeded(Set<String> unlockedIds) async {
+    if (_isLoading || _isSaving) return;
+    if (_setEquals(_persistedUnlockedIds, unlockedIds)) return;
+
+    _isSaving = true;
+    await _achievementPreferences.saveUnlockedIds(unlockedIds);
+    _isSaving = false;
+    if (!mounted) return;
+
+    setState(() {
+      _persistedUnlockedIds = unlockedIds;
+    });
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    if (a.length != b.length) return false;
+    for (final value in a) {
+      if (!b.contains(value)) return false;
+    }
+    return true;
+  }
+
+  Future<void> _unlockPanicSellerForDebug() async {
+    final unlockedIds = await _achievementPreferences.getUnlockedIds();
+    unlockedIds.add('panic_seller');
+    await _achievementPreferences.saveUnlockedIds(unlockedIds);
+    await _loadPersistedAchievements();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,64 +80,73 @@ class AchievementsScreen extends StatelessWidget {
     final startingCash =
         state?.character.initialStats['money']?.toDouble() ?? 0.0;
 
-    final achievements = <_AchievementData>[
-      const _AchievementData(
+    final achievements = <_AchievementRule>[
+      const _AchievementRule(
+        id: 'panic_seller',
         title: 'Panic Seller',
         description: 'Sell an asset right before it goes up in value.',
         icon: Icons.trending_down,
         color: GameThemeConstants.dangerDark,
       ),
-      _AchievementData(
+      _AchievementRule(
+        id: 'bookworm_investor',
         title: 'Bookworm Investor',
         description: 'Buy your first knowledge item.',
         icon: Icons.menu_book,
         color: GameThemeConstants.primaryDark,
-        isUnlocked: hasKnowledgeItem,
+        isUnlockedNow: hasKnowledgeItem,
       ),
-      _AchievementData(
+      _AchievementRule(
+        id: 'mba',
         title: 'MBA',
         description: 'Merge knowledge items to reach level 3.',
         icon: Icons.school,
         color: GameThemeConstants.skyBlueDark,
-        isUnlocked: hasLevel3Knowledge,
+        isUnlockedNow: hasLevel3Knowledge,
       ),
-      _AchievementData(
+      _AchievementRule(
+        id: 'all_eggs_one_basket',
         title: "Don't Put All Eggs in One Basket",
         description:
             'Reach a diversification score of at least 30 with a balanced portfolio.',
         icon: Icons.pie_chart,
         color: GameThemeConstants.accentDark,
-        isUnlocked: diversification >= 30,
+        isUnlockedNow: diversification >= 30,
       ),
-      const _AchievementData(
+      const _AchievementRule(
+        id: 'buy_high_cry_later',
         title: 'Buy High, Cry Later',
         description:
             'Purchase an asset and end the same simulation year at a loss.',
         icon: Icons.sentiment_very_dissatisfied,
         color: GameThemeConstants.orangeDark,
       ),
-      const _AchievementData(
+      const _AchievementRule(
+        id: 'hands_in_pockets',
         title: 'Hands in Pockets',
         description: 'Start a store phase and buy absolutely nothing.',
         icon: Icons.do_not_touch,
         color: GameThemeConstants.warningDark,
       ),
-      _AchievementData(
+      _AchievementRule(
+        id: 'instant_noodle_to_ipo',
         title: 'Instant Noodle to IPO',
         description:
             'Finish a simulation with portfolio value at least 2x your starting money.',
         icon: Icons.rocket_launch,
         color: GameThemeConstants.successDark,
-        isUnlocked: startingCash > 0 && currentCash >= (startingCash * 2),
+        isUnlockedNow: startingCash > 0 && currentCash >= (startingCash * 2),
       ),
-      const _AchievementData(
+      const _AchievementRule(
+        id: 'crash_test_investor',
         title: 'Crash Test Investor',
         description:
             'Survive a market crash event and still end the year positive.',
         icon: Icons.car_crash,
         color: GameThemeConstants.dangerDark,
       ),
-      const _AchievementData(
+      const _AchievementRule(
+        id: 'grip_of_steel',
         title: 'Grip of Steel',
         description:
             'Hold a volatile asset through a full simulation without selling.',
@@ -87,10 +154,28 @@ class AchievementsScreen extends StatelessWidget {
         color: GameThemeConstants.primaryDark,
       ),
     ];
+    final unlockedIds = <String>{..._persistedUnlockedIds};
+    for (final achievement in achievements) {
+      if (achievement.isUnlockedNow) {
+        unlockedIds.add(achievement.id);
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveUnlockedIdsIfNeeded(unlockedIds);
+    });
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Achievements'),
+        actions: [
+          if (kDebugMode)
+            IconButton(
+              tooltip: 'Unlock Panic Seller',
+              icon: const Icon(Icons.bug_report),
+              onPressed: _unlockPanicSellerForDebug,
+            ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -122,7 +207,10 @@ class AchievementsScreen extends StatelessWidget {
             ...achievements.map(
               (achievement) => Padding(
                 padding: const EdgeInsets.only(bottom: SpacingConstants.md),
-                child: _AchievementCard(achievement: achievement),
+                child: _AchievementCard(
+                  achievement: achievement,
+                  isUnlocked: unlockedIds.contains(achievement.id),
+                ),
               ),
             ),
           ],
@@ -135,13 +223,14 @@ class AchievementsScreen extends StatelessWidget {
 class _AchievementCard extends StatelessWidget {
   const _AchievementCard({
     required this.achievement,
+    required this.isUnlocked,
   });
 
-  final _AchievementData achievement;
+  final _AchievementRule achievement;
+  final bool isUnlocked;
 
   @override
   Widget build(BuildContext context) {
-    final isUnlocked = achievement.isUnlocked;
     final iconColor = isUnlocked ? achievement.color : Colors.grey.shade500;
     final textColor =
         isUnlocked ? GameThemeConstants.outlineColor : Colors.grey.shade700;
@@ -204,18 +293,20 @@ class _AchievementCard extends StatelessWidget {
   }
 }
 
-class _AchievementData {
-  const _AchievementData({
+class _AchievementRule {
+  const _AchievementRule({
+    required this.id,
     required this.title,
     required this.description,
     required this.icon,
     required this.color,
-    this.isUnlocked = false,
+    this.isUnlockedNow = false,
   });
 
+  final String id;
   final String title;
   final String description;
   final IconData icon;
   final Color color;
-  final bool isUnlocked;
+  final bool isUnlockedNow;
 }
