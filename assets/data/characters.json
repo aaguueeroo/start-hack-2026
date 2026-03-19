@@ -1,0 +1,82 @@
+{
+  "characters": [
+    {
+      "id": "risky_guy",
+      "name": "Risky Guy",
+      "icon": "casino",
+      "uniqueSkill": "Thrives on volatility",
+      "initialStats": {
+        "money": 10000,
+        "riskTolerance": 90,
+        "financialKnowledge": 40,
+        "assetSlots": 4,
+        "annualIncome": 5000
+      }
+    },
+    {
+      "id": "diversifier",
+      "name": "Diversifier",
+      "icon": "pie_chart",
+      "uniqueSkill": "Extra asset slots",
+      "initialStats": {
+        "money": 8000,
+        "riskTolerance": 60,
+        "financialKnowledge": 70,
+        "assetSlots": 8,
+        "annualIncome": 4000
+      }
+    },
+    {
+      "id": "conservative",
+      "name": "Conservative",
+      "icon": "shield",
+      "uniqueSkill": "Lower volatility impact",
+      "initialStats": {
+        "money": 12000,
+        "riskTolerance": 20,
+        "financialKnowledge": 80,
+        "assetSlots": 4,
+        "annualIncome": 6000
+      }
+    },
+    {
+      "id": "young_investor",
+      "name": "Young Investor",
+      "icon": "school",
+      "uniqueSkill": "Higher annual income growth",
+      "initialStats": {
+        "money": 5000,
+        "riskTolerance": 70,
+        "financialKnowledge": 30,
+        "assetSlots": 4,
+        "annualIncome": 3000
+      }
+    },
+    {
+      "id": "veteran",
+      "name": "Veteran",
+      "icon": "trending_up",
+      "uniqueSkill": "Better market timing",
+      "initialStats": {
+        "money": 15000,
+        "riskTolerance": 50,
+        "financialKnowledge": 90,
+        "assetSlots": 5,
+        "annualIncome": 7000
+      }
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "icon": "balance",
+      "uniqueSkill": "Steady returns",
+      "initialStats": {
+        "money": 10000,
+        "riskTolerance": 50,
+        "financialKnowledge": 60,
+        "assetSlots": 5,
+        "annualIncome": 5000
+      }
+    }
+  ]
+}

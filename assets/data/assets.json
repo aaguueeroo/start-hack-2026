@@ -1,0 +1,52 @@
+{
+  "assets": [
+    {
+      "id": "apple_stock",
+      "name": "Apple Stock",
+      "icon": "diamond",
+      "price": 150,
+      "expectedReturn": 5,
+      "volatility": 15
+    },
+    {
+      "id": "index_fund",
+      "name": "Index Fund",
+      "icon": "show_chart",
+      "price": 100,
+      "expectedReturn": 7,
+      "volatility": 10
+    },
+    {
+      "id": "treasury_bond",
+      "name": "Treasury Bond",
+      "icon": "shield",
+      "price": 100,
+      "expectedReturn": 2,
+      "volatility": 2
+    },
+    {
+      "id": "tech_etf",
+      "name": "Tech ETF",
+      "icon": "trending_up",
+      "price": 80,
+      "expectedReturn": 12,
+      "volatility": 25
+    },
+    {
+      "id": "savings_account",
+      "name": "Savings Account",
+      "icon": "savings",
+      "price": 50,
+      "expectedReturn": 1,
+      "volatility": 0
+    },
+    {
+      "id": "crypto_fund",
+      "name": "Crypto Fund",
+      "icon": "attach_money",
+      "price": 200,
+      "expectedReturn": 20,
+      "volatility": 50
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "items": [
+    {
+      "id": "finance_book",
+      "name": "Finance Book",
+      "icon": "menu_book",
+      "price": 200,
+      "statEffects": {
+        "financialKnowledge": 5,
+        "riskTolerance": 2,
+        "money": -200
+      }
+    },
+    {
+      "id": "risk_course",
+      "name": "Risk Course",
+      "icon": "school",
+      "price": 500,
+      "statEffects": {
+        "riskTolerance": 10,
+        "financialKnowledge": 3,
+        "money": -500
+      }
+    },
+    {
+      "id": "diversification_guide",
+      "name": "Diversification Guide",
+      "icon": "pie_chart",
+      "price": 350,
+      "statEffects": {
+        "assetSlots": 1,
+        "financialKnowledge": 4,
+        "money": -350
+      }
+    },
+    {
+      "id": "market_news",
+      "name": "Market News Subscription",
+      "icon": "show_chart",
+      "price": 100,
+      "statEffects": {
+        "financialKnowledge": 2,
+        "money": -100
+      }
+    },
+    {
+      "id": "confidence_boost",
+      "name": "Confidence Boost",
+      "icon": "trending_up",
+      "price": 150,
+      "statEffects": {
+        "riskTolerance": 5,
+        "money": -150
+      }
+    },
+    {
+      "id": "investment_seminar",
+      "name": "Investment Seminar",
+      "icon": "account_balance",
+      "price": 800,
+      "statEffects": {
+        "financialKnowledge": 15,
+        "riskTolerance": 5,
+        "money": -800
+      }
+    }
+  ]
+}

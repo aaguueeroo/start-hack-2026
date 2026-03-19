@@ -1,0 +1,331 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
+import 'package:start_hack_2026/core/constants/spacing_constants.dart';
+import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/widgets/game_button.dart';
+import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
+import 'package:start_hack_2026/domain/entities/character.dart';
+import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
+
+const Map<String, String> _statDisplayNames = {
+  'money': 'Money',
+  'riskTolerance': 'Risk Tolerance',
+  'financialKnowledge': 'Financial Knowledge',
+  'assetSlots': 'Asset Slots',
+  'annualIncome': 'Annual Income',
+};
+
+class CharacterSelectionScreen extends StatefulWidget {
+  const CharacterSelectionScreen({super.key});
+
+  @override
+  State<CharacterSelectionScreen> createState() =>
+      _CharacterSelectionScreenState();
+}
+
+class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
+  Character? _selectedCharacter;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GameController>().loadCharacters();
+    });
+  }
+
+  void _onConfirmSelection() {
+    final character = _selectedCharacter;
+    if (character == null) return;
+    context.read<GameController>().startNewGame(character);
+    context.pushReplacement('/store');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Choose Your Character'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              GameThemeConstants.creamBackground,
+              Color(0xFFF5EDE0),
+            ],
+          ),
+        ),
+        child: Consumer<GameController>(
+          builder: (context, controller, _) {
+            if (controller.isLoading) {
+              return const Center(child: GameProgressIndicator());
+            }
+            if (controller.errorMessage != null) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(SpacingConstants.lg),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        controller.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: SpacingConstants.md),
+                      GameButton(
+                        label: 'Retry',
+                        onPressed: () => controller.loadCharacters(),
+                        variant: GameButtonVariant.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      SpacingConstants.md,
+                      SpacingConstants.sm,
+                      SpacingConstants.md,
+                      SpacingConstants.sm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SelectedCharacterSlot(
+                          selectedCharacter: _selectedCharacter,
+                          onStatDisplayName: (id) =>
+                              _statDisplayNames[id] ?? id,
+                        ),
+                        const SizedBox(height: SpacingConstants.sm),
+                        Text(
+                          'Select a character',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: GameThemeConstants.primaryDark,
+                              ),
+                        ),
+                        const SizedBox(height: SpacingConstants.sm),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.15,
+                            crossAxisSpacing: SpacingConstants.sm,
+                            mainAxisSpacing: SpacingConstants.sm,
+                          ),
+                          itemCount: controller.characters.length,
+                          itemBuilder: (context, index) {
+                            final character = controller.characters[index];
+                            final isSelected =
+                                _selectedCharacter?.id == character.id;
+                            return _CharacterListItem(
+                              character: character,
+                              isSelected: isSelected,
+                              onTap: () {
+                                setState(() {
+                                  _selectedCharacter = character;
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.all(SpacingConstants.md),
+                    child: GameButton(
+                      label: 'Confirm Choice',
+                      onPressed:
+                          _selectedCharacter != null ? _onConfirmSelection : null,
+                      variant: GameButtonVariant.primary,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedCharacterSlot extends StatelessWidget {
+  const _SelectedCharacterSlot({
+    required this.selectedCharacter,
+    required this.onStatDisplayName,
+  });
+
+  final Character? selectedCharacter;
+  final String Function(String id) onStatDisplayName;
+
+  @override
+  Widget build(BuildContext context) {
+    return GameCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SpacingConstants.md,
+        vertical: SpacingConstants.sm,
+      ),
+      child: selectedCharacter == null
+          ? _buildPlaceholder(context)
+          : _buildSelectedContent(context),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    return SizedBox(
+      height: 80,
+      child: Center(
+        child: Text(
+          '?',
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                color: GameThemeConstants.outlineColorLight,
+                fontWeight: FontWeight.w300,
+              ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedContent(BuildContext context) {
+    final character = selectedCharacter!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          character.icon.toIconData(),
+          size: 48,
+          color: GameThemeConstants.primaryDark,
+        ),
+        const SizedBox(height: SpacingConstants.xs),
+        Text(
+          character.name,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: GameThemeConstants.primaryDark,
+              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: SpacingConstants.xs),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: SpacingConstants.sm,
+            vertical: SpacingConstants.xs,
+          ),
+          decoration: BoxDecoration(
+            color: GameThemeConstants.accentLight.withValues(alpha: 0.3),
+            borderRadius:
+                BorderRadius.circular(SpacingConstants.gameRadiusSm),
+            border: Border.all(
+              color: GameThemeConstants.outlineColor,
+              width: GameThemeConstants.outlineThicknessSmall,
+            ),
+          ),
+          child: Text(
+            character.uniqueSkill,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: GameThemeConstants.outlineColorLight,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: SpacingConstants.sm),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: SpacingConstants.sm,
+          runSpacing: SpacingConstants.xs,
+          children: character.initialStats.entries.map((entry) {
+            return Text(
+              '${onStatDisplayName(entry.key)}: ${_formatStatValue(entry.key, entry.value)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: GameThemeConstants.primaryDark,
+                    fontWeight: FontWeight.w500,
+                  ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  String _formatStatValue(String statId, num value) {
+    if (statId == 'money') {
+      return '\$${value.toStringAsFixed(0)}';
+    }
+    return value.toStringAsFixed(0);
+  }
+}
+
+class _CharacterListItem extends StatelessWidget {
+  const _CharacterListItem({
+    required this.character,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Character character;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GameCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SpacingConstants.sm,
+        vertical: SpacingConstants.xs,
+      ),
+      child: Container(
+        decoration: isSelected
+            ? BoxDecoration(
+                color: GameThemeConstants.primaryLight.withValues(alpha: 0.15),
+                borderRadius:
+                    BorderRadius.circular(SpacingConstants.gameRadiusSm),
+              )
+            : null,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              character.icon.toIconData(),
+              size: 40,
+              color: GameThemeConstants.primaryDark,
+            ),
+            const SizedBox(height: SpacingConstants.xs),
+            Text(
+              character.name,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

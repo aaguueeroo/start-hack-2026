@@ -1,0 +1,46 @@
+{
+  "events": [
+    {
+      "id": "market_crash",
+      "type": "market",
+      "title": "Market Crash",
+      "description": "A sudden market downturn affects all risky assets.",
+      "probability": 0.1
+    },
+    {
+      "id": "market_rally",
+      "type": "market",
+      "title": "Market Rally",
+      "description": "Stocks surge as investor confidence grows.",
+      "probability": 0.15
+    },
+    {
+      "id": "interest_rate_hike",
+      "type": "world",
+      "title": "Interest Rate Hike",
+      "description": "Central bank raises rates. Bonds gain, stocks dip.",
+      "probability": 0.12
+    },
+    {
+      "id": "tech_boom",
+      "type": "market",
+      "title": "Tech Sector Boom",
+      "description": "Technology stocks outperform the market.",
+      "probability": 0.2
+    },
+    {
+      "id": "inflation_surge",
+      "type": "world",
+      "title": "Inflation Surge",
+      "description": "Rising inflation erodes real returns.",
+      "probability": 0.1
+    },
+    {
+      "id": "recession_fears",
+      "type": "world",
+      "title": "Recession Fears",
+      "description": "Economic uncertainty leads to volatility.",
+      "probability": 0.08
+    }
+  ]
+}
