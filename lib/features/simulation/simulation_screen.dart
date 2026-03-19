@@ -81,21 +81,23 @@ class _SimulationScreenState extends State<SimulationScreen> {
             );
           }
           final storeController = context.watch<StoreController>();
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanDown: (_) {
+          return Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) {
               if (controller.status == SimulationStatus.running) {
                 controller.setAccelerating(true);
               }
             },
-            onPanEnd: (_) => controller.setAccelerating(false),
-            onPanCancel: () => controller.setAccelerating(false),
-            onDoubleTap: () {
-              if (controller.status == SimulationStatus.running) {
-                controller.skipToEnd();
-              }
-            },
-            child: SingleChildScrollView(
+            onPointerUp: (_) => controller.setAccelerating(false),
+            onPointerCancel: (_) => controller.setAccelerating(false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onDoubleTap: () {
+                if (controller.status == SimulationStatus.running) {
+                  controller.skipToEnd();
+                }
+              },
+              child: SingleChildScrollView(
               padding: const EdgeInsets.all(SpacingConstants.md),
               child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,6 +153,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                   ),
               ],
             ),
+          ),
           ),
           );
         },
