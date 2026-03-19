@@ -65,6 +65,13 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: SpacingConstants.md),
                 GameButton(
+                  label: 'Glossary',
+                  icon: Icons.menu_book,
+                  onPressed: () => context.push('/glossary'),
+                  variant: GameButtonVariant.accent,
+                ),
+                const SizedBox(height: SpacingConstants.md),
+                GameButton(
                   label: 'Achievements',
                   icon: Icons.emoji_events,
                   onPressed: () => context.push('/achievements'),

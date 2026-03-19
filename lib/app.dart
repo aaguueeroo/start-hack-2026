@@ -8,6 +8,7 @@ import 'package:start_hack_2026/data/mock/mock_game_repository.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/features/achievements/achievements_screen.dart';
 import 'package:start_hack_2026/features/character_selection/character_selection_screen.dart';
+import 'package:start_hack_2026/features/glossary/glossary_screen.dart';
 import 'package:start_hack_2026/features/home/home_screen.dart';
 import 'package:start_hack_2026/features/leaderboard/leaderboard_screen.dart';
 import 'package:start_hack_2026/features/game_won/game_won_screen.dart';
@@ -65,6 +66,10 @@ final GoRouter _router = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+    GoRoute(
+      path: '/glossary',
+      builder: (context, state) => const GlossaryScreen(),
+    ),
     GoRoute(
       path: '/character-selection',
       builder: (context, state) => const CharacterSelectionScreen(),
