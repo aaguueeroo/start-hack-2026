@@ -5,10 +5,9 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
-import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
-import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
+import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 
 class GameWonScreen extends StatelessWidget {
   const GameWonScreen({super.key});
@@ -25,8 +24,8 @@ class GameWonScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Consumer2<GameEngine, StoreController>(
-            builder: (context, gameEngine, storeController, _) {
+          child: Consumer<GameEngine>(
+            builder: (context, gameEngine, _) {
               final state = gameEngine.state;
               if (state == null) {
                 return Center(
@@ -49,6 +48,8 @@ class GameWonScreen extends StatelessWidget {
               final growthPercent = startValue > 0
                   ? ((finalValue - startValue) / startValue * 100)
                   : 0.0;
+              final rawScore = finalValue.isFinite ? finalValue.round() : 0;
+              final score = rawScore < 0 ? 0 : rawScore;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -64,6 +65,11 @@ class GameWonScreen extends StatelessWidget {
                       finalValue: finalValue,
                       yearsPlayed: portfolioHistory.length,
                       growthPercent: growthPercent,
+                    ),
+                    const SizedBox(height: 16),
+                    _SaveScoreSection(
+                      score: score,
+                      characterType: character.name,
                     ),
                     const SizedBox(height: 24),
                     GameButton(
@@ -222,6 +228,154 @@ class _FinalStatsRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SaveScoreSection extends StatefulWidget {
+  const _SaveScoreSection({required this.score, required this.characterType});
+
+  final int score;
+  final String characterType;
+
+  @override
+  State<_SaveScoreSection> createState() => _SaveScoreSectionState();
+}
+
+class _SaveScoreSectionState extends State<_SaveScoreSection> {
+  late final TextEditingController _nameController;
+  bool _isSaving = false;
+  bool _isSaved = false;
+  String? _saveInfoMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _prefillSavedName();
+  }
+
+  Future<void> _prefillSavedName() async {
+    final savedName = await context
+        .read<LeaderboardController>()
+        .getSavedPlayerName();
+    if (!mounted) return;
+    if (savedName != null && savedName.trim().isNotEmpty) {
+      _nameController.text = savedName.trim();
+    }
+  }
+
+  Future<void> _saveScore({bool redirectAfterSave = false}) async {
+    final playerName = _nameController.text.trim();
+    if (_isSaving) {
+      return;
+    }
+    if (_isSaved) {
+      if (redirectAfterSave && mounted) {
+        context.pushReplacement('/leaderboard');
+      }
+      return;
+    }
+    if (playerName.isEmpty) {
+      setState(() {
+        _saveInfoMessage = 'Please enter a player name.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final leaderboardController = context.read<LeaderboardController>();
+      await leaderboardController.saveScore(
+        playerName: playerName,
+        characterType: widget.characterType,
+        score: widget.score,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _isSaved = true;
+        _saveInfoMessage = leaderboardController.isSupabaseAvailable
+            ? 'Saved and synced to Supabase.'
+            : 'Saved locally (Supabase not configured).';
+      });
+      final syncMessage = leaderboardController.isSupabaseAvailable
+          ? 'Score saved and synced to Supabase.'
+          : 'Score saved locally. Supabase is not configured.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(syncMessage)));
+      if (redirectAfterSave && mounted) {
+        context.pushReplacement('/leaderboard');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _saveInfoMessage = 'Save failed. Please try again.';
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save score: $e')));
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GameCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Save your score',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nameController,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                labelText: 'Player name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_saveInfoMessage != null) ...[
+              Text(
+                _saveInfoMessage!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: GameThemeConstants.accentDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            GameButton(
+              label: _isSaved
+                  ? 'View Leaderboard'
+                  : (_isSaving ? 'Saving...' : 'Save & View Leaderboard'),
+              icon: _isSaved ? Icons.leaderboard : Icons.save,
+              onPressed: _isSaving
+                  ? null
+                  : () => _saveScore(redirectAfterSave: true),
+              variant: GameButtonVariant.primary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

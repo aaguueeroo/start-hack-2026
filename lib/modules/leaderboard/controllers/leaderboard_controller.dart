@@ -20,6 +20,7 @@ class LeaderboardController extends ChangeNotifier {
   List<LeaderboardEntry> get entries => _entries;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isSupabaseAvailable => _supabaseService.isAvailable;
 
   Future<void> loadTopScores({int limit = 20}) async {
     _isLoading = true;
@@ -27,16 +28,22 @@ class LeaderboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final local = await _localService.fetchTopScores(limit: limit);
       if (_supabaseService.isAvailable) {
-        final remote = await _supabaseService.fetchTopScores(limit: limit);
-        _entries = _mergeScores(local, remote, limit: limit);
+        _entries = await _supabaseService.fetchTopScores(limit: limit);
       } else {
-        _entries = local;
+        _entries = await _localService.fetchTopScores(limit: limit);
       }
     } catch (e) {
-      _errorMessage = 'Failed to load leaderboard: $e';
-      _entries = const [];
+      try {
+        // If remote fetch fails, still show local scores as graceful fallback.
+        _entries = await _localService.fetchTopScores(limit: limit);
+        _errorMessage = _supabaseService.isAvailable
+            ? 'Loaded local scores (Supabase unavailable).'
+            : null;
+      } catch (_) {
+        _errorMessage = 'Failed to load leaderboard: $e';
+        _entries = const [];
+      }
       if (kDebugMode) {
         print(_errorMessage);
       }
@@ -78,25 +85,4 @@ class LeaderboardController extends ChangeNotifier {
     return _localService.getSavedPlayerName();
   }
 
-  List<LeaderboardEntry> _mergeScores(
-    List<LeaderboardEntry> local,
-    List<LeaderboardEntry> remote, {
-    required int limit,
-  }) {
-    final merged = [...local, ...remote]
-      ..sort((a, b) {
-        final byScore = b.score.compareTo(a.score);
-        if (byScore != 0) return byScore;
-        return b.createdAt.compareTo(a.createdAt);
-      });
-
-    final deduped = <String, LeaderboardEntry>{};
-    for (final entry in merged) {
-      final key =
-          '${entry.playerName}|${entry.characterType}|${entry.score}|${entry.createdAt.millisecondsSinceEpoch}';
-      deduped[key] = entry;
-    }
-
-    return deduped.values.take(limit).toList(growable: false);
-  }
 }

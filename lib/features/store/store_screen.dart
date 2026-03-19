@@ -228,9 +228,19 @@ class _StoreScreenState extends State<StoreScreen> {
                         ),
                         const SizedBox(height: SpacingConstants.xl),
                         GameButton(
-                          label: 'Play',
-                          icon: Icons.play_arrow,
-                          onPressed: () => context.push('/simulation'),
+                          label: controller.hasReachedRoundLimit
+                              ? 'View Results'
+                              : 'Play',
+                          icon: controller.hasReachedRoundLimit
+                              ? Icons.emoji_events
+                              : Icons.play_arrow,
+                          onPressed: () {
+                            if (controller.hasReachedRoundLimit) {
+                              context.pushReplacement('/game-won');
+                              return;
+                            }
+                            context.push('/simulation');
+                          },
                           variant: GameButtonVariant.success,
                         ),
                       ],

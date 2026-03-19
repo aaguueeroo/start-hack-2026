@@ -162,10 +162,12 @@ class _SimulationScreenState extends State<SimulationScreen> {
                       Padding(
                         padding: const EdgeInsets.all(SpacingConstants.md),
                         child: GameButton(
-                          label: controller.hasWon
-                              ? 'View Victory'
+                          label: (controller.hasWon ||
+                                  controller.hasReachedRoundLimit)
+                              ? 'View Results'
                               : 'Continue',
-                          icon: controller.hasWon
+                          icon: (controller.hasWon ||
+                                  controller.hasReachedRoundLimit)
                               ? Icons.emoji_events
                               : Icons.store,
                           onPressed: () async {
@@ -173,7 +175,8 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 .read<StoreController>()
                                 .refreshFromGameState();
                             if (!context.mounted) return;
-                            if (controller.hasWon) {
+                            if (controller.hasWon ||
+                                controller.hasReachedRoundLimit) {
                               context.pushReplacement('/game-won');
                             } else {
                               context.pop();

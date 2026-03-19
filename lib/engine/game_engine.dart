@@ -67,7 +67,11 @@ class GameEngine {
 
   GameState? get state => _state;
 
+  static const int maxRounds = 20;
   static const int _itemSlotsCount = 6;
+
+  bool get canPlayNextRound => (_state?.currentYear ?? 1) <= maxRounds;
+  bool get hasReachedRoundLimit => !canPlayNextRound;
 
   void startNewGame(Character character) {
     final initialCash = (character.initialStats['money'] ?? 0).toInt();
