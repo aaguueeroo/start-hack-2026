@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,8 +25,15 @@ abstract final class SupabaseConfig {
       return;
     }
 
-    await Supabase.initialize(url: url, anonKey: anonKey);
-
-    _initialized = true;
+    try {
+      await Supabase.initialize(url: url, anonKey: anonKey);
+      _initialized = true;
+    } catch (e, stackTrace) {
+      _initialized = false;
+      if (kDebugMode) {
+        print('SupabaseConfig: initialization failed (app runs offline): $e');
+        print(stackTrace);
+      }
+    }
   }
 }

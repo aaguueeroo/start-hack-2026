@@ -3,6 +3,7 @@ import 'package:start_hack_2026/domain/entities/leaderboard_entry.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseLeaderboardService {
+  /// Only true after a successful [Supabase.initialize]; avoids crashing on bad keys/URL.
   bool get isAvailable => SupabaseConfig.isInitialized;
 
   Future<void> saveScore({
@@ -15,7 +16,7 @@ class SupabaseLeaderboardService {
     }
 
     await Supabase.instance.client.from('leaderboard_scores').insert({
-      'username': playerName,
+      'username': playerName.trim(),
       'character_type': characterType.toUpperCase(),
       'score': score,
     });
@@ -26,15 +27,45 @@ class SupabaseLeaderboardService {
       return const [];
     }
 
-    final response = await Supabase.instance.client
+    final dynamic response = await Supabase.instance.client
         .from('leaderboard_scores')
         .select('id, username, character_type, score, created_at')
         .order('score', ascending: false)
-        .order('created_at', ascending: false)
         .limit(limit);
 
-    return (response as List)
-        .map((row) => LeaderboardEntry.fromJson(row as Map<String, dynamic>))
-        .toList(growable: false);
+    if (response == null) {
+      return const [];
+    }
+
+    final List<dynamic> rows;
+    if (response is List<dynamic>) {
+      rows = response;
+    } else if (response is List) {
+      rows = List<dynamic>.from(response);
+    } else {
+      return const [];
+    }
+
+    final entries = <LeaderboardEntry>[];
+    for (final row in rows) {
+      if (row is Map<String, dynamic>) {
+        entries.add(LeaderboardEntry.fromJson(row));
+      } else if (row is Map) {
+        entries.add(
+          LeaderboardEntry.fromJson(Map<String, dynamic>.from(row)),
+        );
+      }
+    }
+
+    entries.sort((a, b) {
+      final byScore = b.score.compareTo(a.score);
+      if (byScore != 0) return byScore;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+
+    if (entries.length <= limit) {
+      return List<LeaderboardEntry>.unmodifiable(entries);
+    }
+    return List<LeaderboardEntry>.unmodifiable(entries.take(limit).toList());
   }
 }

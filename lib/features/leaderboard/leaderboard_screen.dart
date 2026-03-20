@@ -48,7 +48,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               return const LeaderboardShimmer();
             }
 
-            if (controller.errorMessage != null) {
+            if (controller.entries.isEmpty && controller.errorMessage != null) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(SpacingConstants.lg),
@@ -86,6 +86,69 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (controller.errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      SpacingConstants.md,
+                      SpacingConstants.sm,
+                      SpacingConstants.md,
+                      0,
+                    ),
+                    child: GameCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.cloud_off_outlined,
+                            color: GameThemeConstants.warningDark,
+                            size: 22,
+                          ),
+                          const SizedBox(width: SpacingConstants.sm),
+                          Expanded(
+                            child: Text(
+                              controller.errorMessage!,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: GameThemeConstants.accentDark,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (controller.isShowingDemoData)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      SpacingConstants.md,
+                      SpacingConstants.sm,
+                      SpacingConstants.md,
+                      0,
+                    ),
+                    child: GameCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_outlined,
+                            color: GameThemeConstants.primaryDark,
+                            size: 22,
+                          ),
+                          const SizedBox(width: SpacingConstants.sm),
+                          Expanded(
+                            child: Text(
+                              'Sample rankings for preview. Save a score after a '
+                              'run to see real entries (and sync when Supabase is set up).',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: GameThemeConstants.accentDark,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 LeaderboardPodium(
                   topEntries: controller.entries.take(3).toList(),
                 ),
