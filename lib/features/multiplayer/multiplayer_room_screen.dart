@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
@@ -11,6 +12,9 @@ import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
 import 'package:start_hack_2026/modules/multiplayer/controllers/multiplayer_controller.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
+
+const String _marketRoleAssetPath = 'assets/images/market.png';
+const String _investorRoleAssetPath = 'assets/images/investor.png';
 
 class MultiplayerRoomScreen extends StatefulWidget {
   const MultiplayerRoomScreen({super.key});
@@ -97,6 +101,87 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
         _selectedMarketActionKeys.add(eventKey);
       }
     });
+  }
+
+  MultiplayerPlayer? _playerInRole(
+    List<MultiplayerPlayer> players,
+    MultiplayerRole role,
+  ) {
+    for (final MultiplayerPlayer p in players) {
+      if (p.role == role) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  String _playerSlotLabel(MultiplayerPlayer? player, String? currentUserId) {
+    if (player == null) {
+      return 'Waiting';
+    }
+    if (currentUserId != null && player.userId == currentUserId) {
+      return 'You';
+    }
+    return 'Opponent';
+  }
+
+  String _statusMessageForGameCard({
+    required int playerCount,
+    required bool isWaiting,
+    required bool isMarketTurn,
+    required bool isInvestorTurn,
+    required bool isSimulating,
+    required bool isResultsReady,
+    required MultiplayerController controller,
+  }) {
+    if (playerCount < 2) {
+      return '';
+    }
+    if (isWaiting) {
+      return controller.isMarket
+          ? 'Both players are ready. Press Start to begin.'
+          : 'Waiting for market to start...';
+    }
+    if (isMarketTurn) {
+      return controller.isMarket
+          ? 'Your turn: choose market events, then end turn.'
+          : 'The Market is choosing actions... please wait.';
+    }
+    if (isInvestorTurn) {
+      return controller.isMarket
+          ? 'Waiting for Investor actions and simulation start.'
+          : 'Your turn: open store and then run simulation.';
+    }
+    if (isSimulating) {
+      return controller.isMarket
+          ? 'Simulation running... viewing investor live data.'
+          : 'Simulation running...';
+    }
+    if (isResultsReady) {
+      return controller.isMarket
+          ? 'Results ready. Move to next round when ready.'
+          : 'Results ready. Waiting for Market to continue.';
+    }
+    return 'Waiting for room state...';
+  }
+
+  Future<void> _copyRoomCodeToClipboard(
+    BuildContext context,
+    String roomCode,
+  ) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: roomCode));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Room code copied')));
+    } catch (e, stackTrace) {
+      debugPrint('Clipboard copy failed: $e\n$stackTrace');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not copy the room code.')),
+      );
+    }
   }
 
   Future<void> _submitSelectedEventsAndFinishTurn({
@@ -205,14 +290,39 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
             final hasAtLeastOneActionSelected =
                 selectedMarketActions.isNotEmpty;
             final roundResult = controller.roundResult;
+            final bool showStickyStartButton = isWaiting && controller.isMarket;
+            final double bottomSafeInset = MediaQuery.of(
+              context,
+            ).padding.bottom;
+            final EdgeInsets leadingSliverPadding = EdgeInsets.fromLTRB(
+              SpacingConstants.md,
+              SpacingConstants.md,
+              SpacingConstants.md,
+              0,
+            );
+            final double stickyStartVerticalReserve = showStickyStartButton
+                ? bottomSafeInset +
+                      SpacingConstants.sm +
+                      SpacingConstants.multiplayerStickyStartButtonReserve +
+                      SpacingConstants.md
+                : SpacingConstants.md;
+            final EdgeInsets trailingSliverPadding = EdgeInsets.fromLTRB(
+              SpacingConstants.md,
+              0,
+              SpacingConstants.md,
+              stickyStartVerticalReserve,
+            );
 
             return Stack(
               children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.all(SpacingConstants.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: leadingSliverPadding,
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       if (controller.errorMessage != null) ...[
                         GameCard(
                           child: Text(
@@ -229,10 +339,30 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Room ${room.roomCode}',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            Wrap(
+                              spacing: SpacingConstants.xs,
+                              runSpacing: SpacingConstants.xs,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  'Room ${room.roomCode}',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                GameButton(
+                                  label: '',
+                                  icon: Icons.content_copy_rounded,
+                                  variant: GameButtonVariant.accent,
+                                  isFullWidth: false,
+                                  padding: const EdgeInsets.all(
+                                    SpacingConstants.sm,
+                                  ),
+                                  onPressed: () => _copyRoomCodeToClipboard(
+                                    context,
+                                    room.roomCode,
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: SpacingConstants.xs),
                             Text('Round: ${room.currentRound}'),
@@ -242,36 +372,22 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                         ),
                       ),
                       const SizedBox(height: SpacingConstants.md),
-                      GameCard(
-                        child: Text(
-                          isWaiting
-                              ? (playerCount < 2
-                                    ? 'Waiting for second player to join...'
-                                    : controller.isMarket
-                                    ? 'Both players are ready. Press Start to begin.'
-                                    : 'Waiting for market to start...')
-                              : playerCount < 2
-                              ? 'Waiting for second player to join...'
-                              : isMarketTurn
-                              ? (controller.isMarket
-                                    ? 'Your turn: choose market events, then end turn.'
-                                    : 'The Market is choosing actions... please wait.')
-                              : isInvestorTurn
-                              ? (controller.isMarket
-                                    ? 'Waiting for Investor actions and simulation start.'
-                                    : 'Your turn: open store and then run simulation.')
-                              : isSimulating
-                              ? (controller.isMarket
-                                    ? 'Simulation running... viewing investor live data.'
-                                    : 'Simulation running...')
-                              : isResultsReady
-                              ? (controller.isMarket
-                                    ? 'Results ready. Move to next round when ready.'
-                                    : 'Results ready. Waiting for Market to continue.')
-                              : 'Waiting for room state...',
+                      if (playerCount >= 2) ...[
+                        GameCard(
+                          child: Text(
+                            _statusMessageForGameCard(
+                              playerCount: playerCount,
+                              isWaiting: isWaiting,
+                              isMarketTurn: isMarketTurn,
+                              isInvestorTurn: isInvestorTurn,
+                              isSimulating: isSimulating,
+                              isResultsReady: isResultsReady,
+                              controller: controller,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: SpacingConstants.md),
+                        const SizedBox(height: SpacingConstants.md),
+                      ],
                       GameCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,20 +398,80 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: SpacingConstants.sm),
-                            ...controller.players.map(
-                              (player) => Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: SpacingConstants.xs,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Center(
+                                    child: _MultiplayerRoleSlot(
+                                      assetPath: _marketRoleAssetPath,
+                                      waitingFallbackIcon:
+                                          Icons.trending_up_rounded,
+                                      waitingFallbackColor:
+                                          GameThemeConstants.accentDark,
+                                      subtitle: _playerSlotLabel(
+                                        _playerInRole(
+                                          controller.players,
+                                          MultiplayerRole.market,
+                                        ),
+                                        currentUserId,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                child: Text(
-                                  '${player.role.name.toUpperCase()} '
-                                  '${player.userId == currentUserId ? '(You)' : ''}',
+                                const SizedBox(width: SpacingConstants.sm),
+                                Expanded(
+                                  child: Center(
+                                    child: _MultiplayerRoleSlot(
+                                      assetPath: _investorRoleAssetPath,
+                                      waitingFallbackIcon: Icons.person_rounded,
+                                      waitingFallbackColor:
+                                          GameThemeConstants.primaryDark,
+                                      subtitle: _playerSlotLabel(
+                                        _playerInRole(
+                                          controller.players,
+                                          MultiplayerRole.investor,
+                                        ),
+                                        currentUserId,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                    ),
+                    if (playerCount < 2)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: stickyStartVerticalReserve,
+                          ),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: SpacingConstants.sm,
+                              ),
+                              child: _ShiningWaitingText(
+                                text:
+                                    'Waiting for second player to join...',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    SliverPadding(
+                      padding: trailingSliverPadding,
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       const SizedBox(height: SpacingConstants.md),
                       if (isWaiting && !controller.isMarket && !hasLocalGame)
                         GameCard(
@@ -316,15 +492,6 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                               ),
                             ],
                           ),
-                        ),
-                      if (isWaiting && controller.isMarket)
-                        GameButton(
-                          label: 'Start',
-                          icon: Icons.play_arrow,
-                          variant: GameButtonVariant.success,
-                          onPressed: canStartMatch
-                              ? () => controller.startMatch()
-                              : null,
                         ),
                       if (!isWaiting) ...[
                         const SizedBox(height: SpacingConstants.md),
@@ -468,8 +635,34 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                         const SizedBox(height: SpacingConstants.md),
                       ],
                     ],
-                  ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                if (showStickyStartButton)
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          SpacingConstants.md,
+                          SpacingConstants.sm,
+                          SpacingConstants.md,
+                          SpacingConstants.md,
+                        ),
+                        child: GameButton(
+                          label: 'Start',
+                          icon: Icons.play_arrow,
+                          variant: GameButtonVariant.success,
+                          onPressed: canStartMatch
+                              ? () => controller.startMatch()
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
                 if (isInvestorBlockedWaiting)
                   Positioned.fill(
                     child: AbsorbPointer(
@@ -752,6 +945,162 @@ class _MarketEventTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MultiplayerRoleSlot extends StatelessWidget {
+  const _MultiplayerRoleSlot({
+    required this.assetPath,
+    required this.waitingFallbackIcon,
+    required this.waitingFallbackColor,
+    required this.subtitle,
+  });
+
+  final String assetPath;
+  final IconData waitingFallbackIcon;
+  final Color waitingFallbackColor;
+  final String subtitle;
+
+  static const double _imageSize = 120.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isWaiting = subtitle == 'Waiting';
+    final Widget artwork = SizedBox(
+      width: _imageSize,
+      height: _imageSize,
+      child: Image.asset(
+        assetPath,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+              debugPrint('Role image failed: $assetPath — $error');
+              return Icon(
+                waitingFallbackIcon,
+                size: 52,
+                color: isWaiting
+                    ? GameThemeConstants.outlineColorLight
+                    : waitingFallbackColor,
+              );
+            },
+      ),
+    );
+    final Widget slotVisual = isWaiting
+        ? Opacity(
+            opacity: 0.42,
+            child: ColorFiltered(
+              colorFilter: const ColorFilter.matrix(<double>[
+                0.2126, 0.7152, 0.0722, 0, 0, //
+                0.2126, 0.7152, 0.0722, 0, 0, //
+                0.2126, 0.7152, 0.0722, 0, 0, //
+                0, 0, 0, 1, 0, //
+              ]),
+              child: artwork,
+            ),
+          )
+        : artwork;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(SpacingConstants.md),
+          decoration: BoxDecoration(
+            color: GameThemeConstants.creamSurface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: GameThemeConstants.outlineColor,
+              width: GameThemeConstants.outlineThickness,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: GameThemeConstants.outlineColor.withValues(alpha: 0.12),
+                offset: const Offset(0, GameThemeConstants.bevelOffset),
+                blurRadius: 0,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: slotVisual,
+        ),
+        const SizedBox(height: SpacingConstants.sm),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: isWaiting
+                ? GameThemeConstants.statNeutral
+                : GameThemeConstants.darkNavy,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShiningWaitingText extends StatefulWidget {
+  const _ShiningWaitingText({required this.text});
+
+  final String text;
+
+  @override
+  State<_ShiningWaitingText> createState() => _ShiningWaitingTextState();
+}
+
+class _ShiningWaitingTextState extends State<_ShiningWaitingText>
+    with SingleTickerProviderStateMixin {
+  static const Duration _shineDuration = Duration(milliseconds: 2200);
+
+  late AnimationController _shineController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shineController = AnimationController(
+      vsync: this,
+      duration: _shineDuration,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shineController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle style =
+        Theme.of(context).textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ) ??
+        const TextStyle(fontWeight: FontWeight.w600, color: Colors.white);
+    return AnimatedBuilder(
+      animation: _shineController,
+      builder: (BuildContext context, Widget? child) {
+        final double t = _shineController.value;
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              begin: Alignment(-2.6 + 5.2 * t, 0),
+              end: Alignment(-1.4 + 5.2 * t, 0),
+              tileMode: TileMode.clamp,
+              colors: [
+                GameThemeConstants.statNeutral,
+                GameThemeConstants.creamSurface,
+                GameThemeConstants.statNeutral,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ).createShader(bounds);
+          },
+          child: Text(widget.text, style: style, textAlign: TextAlign.center),
+        );
+      },
     );
   }
 }

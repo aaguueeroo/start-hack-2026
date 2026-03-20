@@ -76,40 +76,41 @@ class GameButton extends StatelessWidget {
               children: [
                 if (iconWidget != null) ...[
                   iconWidget!,
-                  const SizedBox(width: SpacingConstants.sm),
+                  if (label.isNotEmpty) const SizedBox(width: SpacingConstants.sm),
                 ] else if (icon != null) ...[
                   Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(width: SpacingConstants.sm),
+                  if (label.isNotEmpty) const SizedBox(width: SpacingConstants.sm),
                 ],
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    shadows: [
-                      Shadow(
-                        color: GameThemeConstants.outlineColor,
-                        offset: const Offset(2, 2),
-                        blurRadius: 0,
-                      ),
-                      Shadow(
-                        color: GameThemeConstants.outlineColor,
-                        offset: const Offset(-1, -1),
-                        blurRadius: 0,
-                      ),
-                      Shadow(
-                        color: GameThemeConstants.outlineColor,
-                        offset: const Offset(1, -1),
-                        blurRadius: 0,
-                      ),
-                      Shadow(
-                        color: GameThemeConstants.outlineColor,
-                        offset: const Offset(-1, 1),
-                        blurRadius: 0,
-                      ),
-                    ],
+                if (label.isNotEmpty)
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      shadows: [
+                        Shadow(
+                          color: GameThemeConstants.outlineColor,
+                          offset: const Offset(2, 2),
+                          blurRadius: 0,
+                        ),
+                        Shadow(
+                          color: GameThemeConstants.outlineColor,
+                          offset: const Offset(-1, -1),
+                          blurRadius: 0,
+                        ),
+                        Shadow(
+                          color: GameThemeConstants.outlineColor,
+                          offset: const Offset(1, -1),
+                          blurRadius: 0,
+                        ),
+                        Shadow(
+                          color: GameThemeConstants.outlineColor,
+                          offset: const Offset(-1, 1),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
             ?trailing,

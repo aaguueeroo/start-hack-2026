@@ -21,4 +21,7 @@ abstract final class SpacingConstants {
 
   /// Preview card: avatar + RPG stat bars + skill blurb (avoid vertical overflow).
   static const double selectedCharacterSlotHeight = 248.0;
+
+  /// Multiplayer room: extra scroll bottom inset so content clears the fixed Start CTA.
+  static const double multiplayerStickyStartButtonReserve = 72.0;
 }
