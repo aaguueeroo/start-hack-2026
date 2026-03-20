@@ -252,6 +252,31 @@ class MultiplayerController extends ChangeNotifier {
     }
   }
 
+  Future<void> continueFromInvestorResults() async {
+    final currentRoom = _room;
+    if (currentRoom == null ||
+        isMarket ||
+        currentRoom.status != MultiplayerRoomStatus.resultsReady) {
+      return;
+    }
+    _isBusy = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _multiplayerService.advanceRound(
+        roomId: currentRoom.id,
+        currentRound: currentRoom.currentRound,
+      );
+      _roundResult = null;
+      _roundEvents = [];
+    } catch (e) {
+      _errorMessage = 'Failed to continue to next round: $e';
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> startMatch() async {
     final currentRoom = _room;
     if (currentRoom == null ||
