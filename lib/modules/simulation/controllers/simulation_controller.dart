@@ -116,6 +116,7 @@ class SimulationController extends ChangeNotifier {
                 SimulationDataPoint(
                   timestamp: monthOffset + result.timestamp,
                   value: result.portfolioValue,
+                  holdingsOnlyValue: result.holdingsOnlyValue,
                 ),
               );
               _lastPortfolioValue = result.portfolioValue;

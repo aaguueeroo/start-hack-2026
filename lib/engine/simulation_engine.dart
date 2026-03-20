@@ -47,6 +47,7 @@ class SimulationResult {
   const SimulationResult({
     required this.timestamp,
     required this.portfolioValue,
+    required this.holdingsOnlyValue,
     this.event,
     this.lifeEvent,
     this.panicSellEvent,
@@ -57,6 +58,9 @@ class SimulationResult {
 
   final double timestamp;
   final double portfolioValue;
+
+  /// Sum of marked-to-market holdings (return factors applied); excludes cash.
+  final double holdingsOnlyValue;
   final SimulationEvent? event;
 
   /// One-off life event (bills, goals) that may spend cash and liquidate holdings.
@@ -123,6 +127,7 @@ class SimulationEngine {
       returnFactors: returnFactors,
     );
     final riskTolerance = stats.riskTolerance / 100.0;
+    final monthlySavings = stats.monthlySavings.clamp(0, 1000000000);
     var currentMonth = 0.0;
     final eventPool = List<Map<String, dynamic>>.from(eventsConfig);
     final lifePool = List<Map<String, dynamic>>.from(lifeEventsConfig);
@@ -248,8 +253,6 @@ class SimulationEngine {
         }
       }
 
-      // Monthly savings injection is disabled.
-
       final newHoldings = <String, PortfolioAsset>{};
       for (final entry in currentHoldings.entries) {
         final asset = entry.value;
@@ -300,8 +303,17 @@ class SimulationEngine {
         }
       }
 
+      // End of each simulated month: add recurring savings to cash (not invested).
+      if (tick % ticksPerMonth == ticksPerMonth - 1 && monthlySavings > 0) {
+        currentCash += monthlySavings;
+      }
+
       portfolioValue = _assetCalculationEngine.portfolioValueWithFactors(
         cash: currentCash,
+        holdings: currentHoldings,
+        returnFactors: returnFactors,
+      );
+      final holdingsOnlyValue = _assetCalculationEngine.holdingsValueWithFactors(
         holdings: currentHoldings,
         returnFactors: returnFactors,
       );
@@ -344,6 +356,7 @@ class SimulationEngine {
       yield SimulationResult(
         timestamp: currentMonth,
         portfolioValue: portfolioValue,
+        holdingsOnlyValue: holdingsOnlyValue,
         event: event,
         lifeEvent: lifeEvent,
         panicSellEvent: panicSellEvent,

@@ -199,7 +199,14 @@ class MultiplayerController extends ChangeNotifier {
     final currentRoom = _room;
     if (currentRoom == null || isMarket) return;
     final pointPayload = dataPoints
-        .map((point) => {'timestamp': point.timestamp, 'value': point.value})
+        .map(
+          (point) => <String, dynamic>{
+            'timestamp': point.timestamp,
+            'value': point.value,
+            if (point.holdingsOnlyValue != null)
+              'holdings_only': point.holdingsOnlyValue,
+          },
+        )
         .toList(growable: false);
     final eventPayload = events
         .map(

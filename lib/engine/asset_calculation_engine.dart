@@ -92,6 +92,20 @@ class AssetCalculationEngine {
     return total;
   }
 
+  /// Holdings only (no cash), using the same `totalValue × factor` as
+  /// [portfolioValueWithFactors] so the line matches the invested sleeve.
+  double holdingsValueWithFactors({
+    required Map<String, PortfolioAsset> holdings,
+    required Map<String, double> returnFactors,
+  }) {
+    var total = 0.0;
+    for (final entry in holdings.entries) {
+      final factor = returnFactors[entry.key] ?? 1.0;
+      total += totalValue(entry.value) * factor;
+    }
+    return total;
+  }
+
   /// Builds updated holdings with each asset's pricePerUnit multiplied by its factor.
   Map<String, PortfolioAsset> applyReturnFactorsToHoldings(
     Map<String, PortfolioAsset> holdings,

@@ -17,6 +17,36 @@ import 'package:start_hack_2026/modules/store/controllers/store_controller.dart'
 String _simulationEventAnimationKey(SimulationEvent e) =>
     '${e.timestamp}_${e.type.name}_${e.title}';
 
+/// True when every point in [currentYear] has [SimulationDataPoint.holdingsOnlyValue]
+/// (so the investments-only line matches the total chart’s month coverage).
+bool _yearHasHoldingsOnlySeries(
+  List<SimulationDataPoint> dataPoints,
+  int currentYear,
+) {
+  const monthsPerYear = 12;
+  final yearStart = (currentYear - 1) * monthsPerYear;
+  final yearEnd = currentYear * monthsPerYear;
+  final slice = dataPoints
+      .where((p) => p.timestamp >= yearStart && p.timestamp < yearEnd)
+      .toList();
+  if (slice.isEmpty) return false;
+  return slice.every((p) => p.holdingsOnlyValue != null);
+}
+
+/// Market / narrative shocks and panic sells — shown on the investments (%)
+/// chart. Life events (cash bills) stay on the total portfolio chart.
+bool _isAssetRelatedChartEvent(SimulationEventType type) {
+  switch (type) {
+    case SimulationEventType.market:
+    case SimulationEventType.character:
+    case SimulationEventType.world:
+    case SimulationEventType.panicSell:
+      return true;
+    case SimulationEventType.life:
+      return false;
+  }
+}
+
 class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
 
@@ -143,13 +173,64 @@ class _SimulationScreenState extends State<SimulationScreen> {
                               height: 250,
                               child: _SimulationChart(
                                 dataPoints: controller.dataPoints,
-                                events: controller.events,
+                                events: controller.events
+                                    .where(
+                                      (e) =>
+                                          !_isAssetRelatedChartEvent(e.type),
+                                    )
+                                    .toList(),
                                 currentYear:
                                     controller.status ==
                                         SimulationStatus.complete
                                     ? controller.currentYear - 1
                                     : controller.currentYear,
                               ),
+                            ),
+                            Builder(
+                              builder: (context) {
+                                final chartYear =
+                                    controller.status ==
+                                        SimulationStatus.complete
+                                    ? controller.currentYear - 1
+                                    : controller.currentYear;
+                                if (!_yearHasHoldingsOnlySeries(
+                                  controller.dataPoints,
+                                  chartYear,
+                                )) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: SpacingConstants.md),
+                                    Text(
+                                      'Holdings (% vs first in-year position)',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: SpacingConstants.sm),
+                                    SizedBox(
+                                      height: 220,
+                                      child: _SimulationChart(
+                                        dataPoints: controller.dataPoints,
+                                        events: controller.events
+                                            .where(
+                                              (e) => _isAssetRelatedChartEvent(
+                                                e.type,
+                                              ),
+                                            )
+                                            .toList(),
+                                        currentYear: chartYear,
+                                        holdingsOnlySeries: true,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             _YearEventsList(
                               events: controller.events,
@@ -540,11 +621,16 @@ class _SimulationChart extends StatefulWidget {
     required this.dataPoints,
     required this.events,
     required this.currentYear,
+    this.holdingsOnlySeries = false,
   });
 
   final List<SimulationDataPoint> dataPoints;
   final List<SimulationEvent> events;
   final int currentYear;
+
+  /// When true, plots holdings as % change vs first positive holdings in the year
+  /// and uses [events] for markers (asset-related events only from the parent).
+  final bool holdingsOnlySeries;
 
   @override
   State<_SimulationChart> createState() => _SimulationChartState();
@@ -560,6 +646,7 @@ class _SimulationChartState extends State<_SimulationChart>
   late final AnimationController _tailController;
   List<FlSpot> _displaySpots = <FlSpot>[];
   int? _chartYearSynced;
+  bool? _holdingsSeriesSynced;
   List<FlSpot> _tailPrefix = <FlSpot>[];
   FlSpot _tailStart = const FlSpot(0, 0);
   FlSpot _tailEnd = const FlSpot(0, 0);
@@ -582,8 +669,9 @@ class _SimulationChartState extends State<_SimulationChart>
   void _syncEventIntroAnimations(
     Map<int, SimulationEvent> eventSpotMap, {
     required bool bulkSpotJump,
+    required List<SimulationEvent> chartYearEvents,
   }) {
-    final Set<String> currentAllKeys = widget.events
+    final Set<String> currentAllKeys = chartYearEvents
         .map(_simulationEventAnimationKey)
         .toSet();
 
@@ -688,10 +776,12 @@ class _SimulationChartState extends State<_SimulationChart>
       return;
     }
     _didBulkSpotJump = false;
-    if (widget.currentYear != _chartYearSynced) {
+    if (widget.currentYear != _chartYearSynced ||
+        widget.holdingsOnlySeries != _holdingsSeriesSynced) {
       _tailController.stop();
       _clearEventIntroState();
       _chartYearSynced = widget.currentYear;
+      _holdingsSeriesSynced = widget.holdingsOnlySeries;
       setState(() {
         _displaySpots = target.isEmpty ? <FlSpot>[] : List<FlSpot>.from(target);
       });
@@ -753,6 +843,8 @@ class _SimulationChartState extends State<_SimulationChart>
   void didUpdateWidget(_SimulationChart oldWidget) {
     super.didUpdateWidget(oldWidget);
     final bool yearChanged = oldWidget.currentYear != widget.currentYear;
+    final bool seriesChanged =
+        oldWidget.holdingsOnlySeries != widget.holdingsOnlySeries;
     _syncDisplayToTarget(_filterCurrentYear().spots);
     final ({List<FlSpot> spots, List<SimulationEvent> yearEvents}) filtered =
         _filterCurrentYear();
@@ -763,7 +855,8 @@ class _SimulationChartState extends State<_SimulationChart>
     );
     _syncEventIntroAnimations(
       eventSpotMap,
-      bulkSpotJump: _didBulkSpotJump || yearChanged,
+      bulkSpotJump: _didBulkSpotJump || yearChanged || seriesChanged,
+      chartYearEvents: filtered.yearEvents,
     );
   }
 
@@ -803,6 +896,32 @@ class _SimulationChartState extends State<_SimulationChart>
     final filteredPoints = widget.dataPoints
         .where((p) => p.timestamp >= yearStart && p.timestamp < yearEnd)
         .toList();
+    if (widget.holdingsOnlySeries) {
+      if (filteredPoints.isEmpty ||
+          filteredPoints.any((p) => p.holdingsOnlyValue == null)) {
+        return (spots: <FlSpot>[], yearEvents: <SimulationEvent>[]);
+      }
+      double? baseline;
+      for (final p in filteredPoints) {
+        final v = p.holdingsOnlyValue!;
+        if (v > 0) {
+          baseline = v;
+          break;
+        }
+      }
+      final spots = <FlSpot>[];
+      for (final p in filteredPoints) {
+        final v = p.holdingsOnlyValue!;
+        final y = baseline == null || v <= 0
+            ? 0.0
+            : (v / baseline - 1) * 100;
+        spots.add(FlSpot(p.timestamp - yearStart, y));
+      }
+      final yearEvents = widget.events
+          .where((e) => e.timestamp >= yearStart && e.timestamp < yearEnd)
+          .toList();
+      return (spots: spots, yearEvents: yearEvents);
+    }
     final spots = filteredPoints
         .map((p) => FlSpot(p.timestamp - yearStart, p.value))
         .toList();
@@ -900,11 +1019,23 @@ class _SimulationChartState extends State<_SimulationChart>
     final maxVal = targetSpots
         .map((FlSpot s) => s.y)
         .reduce((a, b) => a > b ? a : b);
-    final minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
-    final maxY = (maxVal * 1.05).toDouble();
+    late final double minY;
+    late final double maxY;
+    if (widget.holdingsOnlySeries) {
+      final span = (maxVal - minVal).abs();
+      final pad = span < 1e-6 ? 1.0 : span * 0.08;
+      minY = minVal - pad;
+      maxY = maxVal + pad;
+    } else {
+      minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
+      maxY = (maxVal * 1.05).toDouble();
+    }
     final maxX = _monthsPerYear.toDouble();
     final eventSpotMap = _buildEventSpotMap(chartSpots, filtered.yearEvents);
     final eventSpotIndices = eventSpotMap.keys.toSet();
+    final lineColor = widget.holdingsOnlySeries
+        ? GameThemeConstants.accentDark
+        : GameThemeConstants.primaryDark;
 
     return GameCard(
       child: Padding(
@@ -926,9 +1057,21 @@ class _SimulationChartState extends State<_SimulationChart>
                       if (eventSpotIndices.contains(spot.spotIndex)) {
                         return null;
                       }
+                      if (widget.holdingsOnlySeries) {
+                        final y = spot.y;
+                        final sign = y > 0 ? '+' : '';
+                        return LineTooltipItem(
+                          'Month ${(spot.x.toInt() + 1).clamp(1, 12)}\n'
+                          'Holdings: $sign${y.toStringAsFixed(1)}%',
+                          const TextStyle(
+                            color: GameThemeConstants.creamSurface,
+                            fontSize: 12,
+                          ),
+                        );
+                      }
                       return LineTooltipItem(
                         'Month ${(spot.x.toInt() + 1).clamp(1, 12)}\n'
-                        '\$${spot.y.toStringAsFixed(0)}',
+                        'Portfolio: \$${spot.y.toStringAsFixed(0)}',
                         const TextStyle(
                           color: GameThemeConstants.creamSurface,
                           fontSize: 12,
@@ -984,7 +1127,7 @@ class _SimulationChartState extends State<_SimulationChart>
                 LineChartBarData(
                   spots: chartSpots,
                   isCurved: true,
-                  color: GameThemeConstants.primaryDark,
+                  color: lineColor,
                   barWidth: 2,
                   dotData: FlDotData(
                     show: true,
@@ -993,7 +1136,7 @@ class _SimulationChartState extends State<_SimulationChart>
                       if (!isEvent) {
                         return FlDotCirclePainter(
                           radius: 0,
-                          color: GameThemeConstants.primaryDark,
+                          color: lineColor,
                           strokeWidth: 0,
                           strokeColor: GameThemeConstants.creamSurface,
                         );
@@ -1011,9 +1154,7 @@ class _SimulationChartState extends State<_SimulationChart>
                   ),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: GameThemeConstants.primaryDark.withValues(
-                      alpha: 0.2,
-                    ),
+                    color: lineColor.withValues(alpha: 0.2),
                   ),
                 ),
               ],
@@ -1021,11 +1162,23 @@ class _SimulationChartState extends State<_SimulationChart>
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40,
-                    getTitlesWidget: (value, meta) => Text(
-                      value.toInt().toString(),
-                      style: const TextStyle(fontSize: 10),
-                    ),
+                    reservedSize: widget.holdingsOnlySeries ? 46 : 40,
+                    getTitlesWidget: (value, meta) {
+                      if (widget.holdingsOnlySeries) {
+                        final v = value;
+                        final label = (v - v.round()).abs() < 0.05
+                            ? '${v.round()}%'
+                            : '${v.toStringAsFixed(1)}%';
+                        return Text(
+                          label,
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      }
+                      return Text(
+                        value.toInt().toString(),
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    },
                   ),
                 ),
                 bottomTitles: AxisTitles(

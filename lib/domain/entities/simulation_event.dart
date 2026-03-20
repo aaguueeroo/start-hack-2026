@@ -58,8 +58,13 @@ class SimulationDataPoint {
   const SimulationDataPoint({
     required this.timestamp,
     required this.value,
+    /// Mark-to-market value of holdings only (no cash) — excludes monthly savings.
+    this.holdingsOnlyValue,
   });
 
   final double timestamp;
   final double value;
+
+  /// Null for legacy/cumulative points from older sessions.
+  final double? holdingsOnlyValue;
 }

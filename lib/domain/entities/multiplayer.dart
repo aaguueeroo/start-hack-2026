@@ -138,6 +138,7 @@ class MultiplayerRoundResult {
           return SimulationDataPoint(
             timestamp: (p['timestamp'] as num?)?.toDouble() ?? 0,
             value: (p['value'] as num?)?.toDouble() ?? 0,
+            holdingsOnlyValue: (p['holdings_only'] as num?)?.toDouble(),
           );
         })
         .toList(growable: false);
