@@ -5,6 +5,7 @@ import 'package:start_hack_2026/core/constants/character_image_constants.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/widgets/character_preview_stat_bars.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
@@ -188,14 +189,6 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   }
 }
 
-/// Core stats for the preview: readable at a glance, scales work for RPG bars.
-const List<String> _previewStatIds = [
-  'money',
-  'riskTolerance',
-  'financialKnowledge',
-  'investmentHorizonRemaining',
-];
-
 class _SelectedCharacterSlot extends StatelessWidget {
   const _SelectedCharacterSlot({required this.selectedCharacter});
 
@@ -262,17 +255,7 @@ class _SelectedCharacterSlot extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final id in _previewStatIds) ...[
-                _ComicStatBar(
-                  label: _previewStatLabel(id),
-                  value: (character.initialStats[id] ?? 0).toDouble(),
-                  maxForBar: _previewStatMax(id),
-                  valueCaption: _previewStatCaption(id, character.initialStats),
-                  fillLight: _previewStatFillLight(id),
-                  fillDark: _previewStatFillDark(id),
-                ),
-                const SizedBox(height: SpacingConstants.xs),
-              ],
+              CharacterPreviewStatBars(stats: character.initialStats),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -300,165 +283,6 @@ class _SelectedCharacterSlot extends StatelessWidget {
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  static String _previewStatLabel(String id) {
-    return switch (id) {
-      'money' => 'CAPITAL',
-      'riskTolerance' => 'RISK',
-      'financialKnowledge' => 'FINANCE',
-      'investmentHorizonRemaining' => 'RUNWAY',
-      _ => id.toUpperCase(),
-    };
-  }
-
-  static double _previewStatMax(String id) {
-    return switch (id) {
-      'money' => 80000,
-      'riskTolerance' => 100,
-      'financialKnowledge' => 100,
-      'investmentHorizonRemaining' => 45,
-      _ => 100,
-    };
-  }
-
-  static String _previewStatCaption(String id, Map<String, num> stats) {
-    final v = stats[id] ?? 0;
-    return switch (id) {
-      'money' => '\$${_formatMoney(v)}',
-      'investmentHorizonRemaining' => '${v.toStringAsFixed(0)} yrs',
-      _ => v.toStringAsFixed(0),
-    };
-  }
-
-  static String _formatMoney(num value) {
-    final n = value.round();
-    if (n >= 1000) {
-      return '${(n / 1000).round()}k';
-    }
-    return n.toString();
-  }
-
-  static Color _previewStatFillLight(String id) {
-    return switch (id) {
-      'money' => GameThemeConstants.warningLight,
-      'riskTolerance' => GameThemeConstants.orangeLight,
-      'financialKnowledge' => GameThemeConstants.primaryLight,
-      'investmentHorizonRemaining' => GameThemeConstants.skyBlueLight,
-      _ => GameThemeConstants.accentLight,
-    };
-  }
-
-  static Color _previewStatFillDark(String id) {
-    return switch (id) {
-      'money' => GameThemeConstants.warningDark,
-      'riskTolerance' => GameThemeConstants.orangeDark,
-      'financialKnowledge' => GameThemeConstants.primaryDark,
-      'investmentHorizonRemaining' => GameThemeConstants.skyBlueDark,
-      _ => GameThemeConstants.accentDark,
-    };
-  }
-}
-
-/// Chunky outlined fill bar (comic / RPG character sheet).
-class _ComicStatBar extends StatelessWidget {
-  const _ComicStatBar({
-    required this.label,
-    required this.value,
-    required this.maxForBar,
-    required this.valueCaption,
-    required this.fillLight,
-    required this.fillDark,
-  });
-
-  final String label;
-  final double value;
-  final double maxForBar;
-  final String valueCaption;
-  final Color fillLight;
-  final Color fillDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = maxForBar <= 0 ? 0.0 : (value / maxForBar).clamp(0.0, 1.0);
-    final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      fontWeight: FontWeight.w900,
-      letterSpacing: 0.4,
-      color: GameThemeConstants.outlineColor,
-      fontSize: 10,
-    );
-    final valueStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      fontWeight: FontWeight.w800,
-      color: GameThemeConstants.primaryDark,
-      fontSize: 10,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(label, style: labelStyle)),
-            Text(valueCaption, style: valueStyle),
-          ],
-        ),
-        const SizedBox(height: 3),
-        SizedBox(
-          height: 13,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: GameThemeConstants.creamBackground.withValues(
-                    alpha: 0.45,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: GameThemeConstants.outlineColor,
-                    width: GameThemeConstants.outlineThicknessSmall,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(2),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: t,
-                      heightFactor: 1,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              fillLight,
-                              fillDark,
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: GameThemeConstants.outlineColor.withValues(
-                                alpha: 0.12,
-                              ),
-                              offset: const Offset(0, 1),
-                              blurRadius: 0,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],

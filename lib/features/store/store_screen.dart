@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/character_image_constants.dart';
-import 'package:start_hack_2026/core/constants/character_neutral_stats.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/widgets/character_preview_stat_bars.dart';
 import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
@@ -532,7 +532,6 @@ class _StoreHudOverlay extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: _StoreHudCharacterContent(
                     character: controller.character!,
-                    statsSchema: controller.statsSchema,
                   ),
                 ),
               ),
@@ -545,25 +544,9 @@ class _StoreHudOverlay extends StatelessWidget {
 }
 
 class _StoreHudCharacterContent extends StatelessWidget {
-  const _StoreHudCharacterContent({
-    required this.character,
-    required this.statsSchema,
-  });
+  const _StoreHudCharacterContent({required this.character});
 
   final Character character;
-  final List<StatSchema> statsSchema;
-
-  String _getStatDisplayName(String statId) {
-    final schema = statsSchema.where((s) => s.id == statId).firstOrNull;
-    return schema?.displayName ?? statId;
-  }
-
-  String _formatStatValue(String statId, num value) {
-    if (statId == 'money') {
-      return '\$${value.toStringAsFixed(0)}';
-    }
-    return value.toStringAsFixed(0);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -602,33 +585,7 @@ class _StoreHudCharacterContent extends StatelessWidget {
               ),
               const SizedBox(width: SpacingConstants.md),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...character.initialStats.entries
-                        .where(
-                          (e) => CharacterNeutralStats.differsFromNeutral(
-                            e.key,
-                            e.value,
-                          ),
-                        )
-                        .map(
-                          (e) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: SpacingConstants.xs,
-                            ),
-                            child: Text(
-                              '${_getStatDisplayName(e.key)}: ${_formatStatValue(e.key, e.value)}',
-                              style:
-                                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: GameThemeConstants.primaryDark,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                  ],
-                ),
+                child: CharacterPreviewStatBars(stats: character.initialStats),
               ),
             ],
           ),
@@ -639,7 +596,7 @@ class _StoreHudCharacterContent extends StatelessWidget {
               vertical: SpacingConstants.xs,
             ),
             decoration: BoxDecoration(
-              color: GameThemeConstants.accentLight.withValues(alpha: 0.3),
+              color: GameThemeConstants.accentLight.withValues(alpha: 0.28),
               borderRadius:
                   BorderRadius.circular(SpacingConstants.gameRadiusSm),
               border: Border.all(
@@ -649,9 +606,10 @@ class _StoreHudCharacterContent extends StatelessWidget {
             ),
             child: Text(
               character.uniqueSkill,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
                 color: GameThemeConstants.outlineColorLight,
+                height: 1.2,
               ),
               textAlign: TextAlign.left,
             ),
