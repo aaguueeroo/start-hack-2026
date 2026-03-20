@@ -228,19 +228,18 @@ class _StoreScreenState extends State<StoreScreen> {
   Widget build(BuildContext context) {
     return Consumer<StoreController>(
       builder: (context, controller, _) {
-        final double safeBottomInset = MediaQuery.paddingOf(context).bottom;
+        final EdgeInsets padding = MediaQuery.paddingOf(context);
+        final double safeBottomInset = padding.bottom;
         const double storeBottomBarHeight =
             SpacingConstants.md * 2 +
             SpacingConstants.xl +
             GameThemeConstants.bevelOffset;
-        final double storeScrollBottomPadding =
-            safeBottomInset +
+        const double storeScrollBottomPadding =
             SpacingConstants.md +
             storeBottomBarHeight +
             SpacingConstants.sm;
         return Scaffold(
-          body: SafeArea(
-            child: Container(
+          body: Container(
               decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -295,7 +294,7 @@ class _StoreScreenState extends State<StoreScreen> {
                           clipBehavior: Clip.none,
                           children: [
                             SingleChildScrollView(
-                              padding: EdgeInsets.only(
+                              padding: const EdgeInsets.only(
                                 left: SpacingConstants.md,
                                 right: SpacingConstants.md,
                                 top: SpacingConstants.md,
@@ -486,7 +485,6 @@ class _StoreScreenState extends State<StoreScreen> {
                     ],
                   ),
             ),
-          ),
         );
       },
     );

@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
+import 'package:start_hack_2026/core/constants/spacing_constants.dart';
+
+OutlineInputBorder _gameInputOutlineBorder({
+  required Color color,
+  double width = GameThemeConstants.outlineThickness,
+}) {
+  return OutlineInputBorder(
+    borderRadius: BorderRadius.circular(GameThemeConstants.radiusButtonStadium),
+    borderSide: BorderSide(color: color, width: width),
+  );
+}
 
 class GameTheme {
   GameTheme._();
@@ -152,6 +163,50 @@ class GameTheme {
               GameThemeConstants.radiusButtonStadium,
             ),
           ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: GameThemeConstants.creamSurface,
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: SpacingConstants.md,
+          vertical: SpacingConstants.md,
+        ),
+        labelStyle: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: GameThemeConstants.outlineColor,
+        ),
+        hintStyle: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: GameThemeConstants.outlineColorLight,
+        ),
+        floatingLabelStyle: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: GameThemeConstants.primaryDark,
+        ),
+        border: _gameInputOutlineBorder(color: GameThemeConstants.outlineColor),
+        enabledBorder: _gameInputOutlineBorder(
+          color: GameThemeConstants.outlineColor,
+        ),
+        focusedBorder: _gameInputOutlineBorder(
+          color: GameThemeConstants.primaryDark,
+        ),
+        errorBorder: _gameInputOutlineBorder(
+          color: GameThemeConstants.dangerDark,
+        ),
+        focusedErrorBorder: _gameInputOutlineBorder(
+          color: GameThemeConstants.dangerDark,
+        ),
+        disabledBorder: _gameInputOutlineBorder(
+          color: GameThemeConstants.outlineColorLight,
+          width: GameThemeConstants.outlineThicknessSmall,
         ),
       ),
     );

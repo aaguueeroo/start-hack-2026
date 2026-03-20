@@ -166,7 +166,6 @@ class _MultiplayerScreenState extends State<MultiplayerScreen> {
                           textCapitalization: TextCapitalization.characters,
                           decoration: const InputDecoration(
                             hintText: 'Room code (e.g. AB12CD)',
-                            border: OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: SpacingConstants.sm),
