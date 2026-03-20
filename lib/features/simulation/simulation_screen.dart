@@ -10,6 +10,7 @@ import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart'
     show SimulationDataPoint, SimulationEvent, SimulationEventType;
+import 'package:start_hack_2026/modules/multiplayer/controllers/multiplayer_controller.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
@@ -171,12 +172,16 @@ class _SimulationScreenState extends State<SimulationScreen> {
                           icon: !controller.shouldShowResults
                               ? Icons.store
                               : (controller.isBankrupt
-                                  ? Icons.money_off
-                                  : Icons.emoji_events),
+                                    ? Icons.money_off
+                                    : Icons.emoji_events),
                           onPressed: () async {
-                            await context
-                                .read<StoreController>()
-                                .refreshFromGameState();
+                            final multiplayerController = context
+                                .read<MultiplayerController>();
+                            final storeController = context
+                                .read<StoreController>();
+                            await multiplayerController
+                                .continueFromInvestorResults();
+                            await storeController.refreshFromGameState();
                             if (!context.mounted) return;
                             if (controller.shouldShowResults) {
                               context.pushReplacement('/game-won');
@@ -1266,6 +1271,13 @@ class _EventPopupContent extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
+          const SizedBox(height: SpacingConstants.xs),
+          Text(
+            'Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );

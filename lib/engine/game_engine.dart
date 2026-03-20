@@ -57,10 +57,7 @@ Map<String, int> _rebalanceAllocationPercentsForNewPurchase({
 }
 
 class PortfolioHistoryPoint {
-  const PortfolioHistoryPoint({
-    required this.year,
-    required this.value,
-  });
+  const PortfolioHistoryPoint({required this.year, required this.value});
 
   final int year;
   final double value;
@@ -99,10 +96,10 @@ class GameEngine {
     CalculationEngine? calculationEngine,
     SimulationEngine? simulationEngine,
     AssetCalculationEngine? assetCalculationEngine,
-  })  : _calculationEngine = calculationEngine ?? CalculationEngine(),
-        _simulationEngine = simulationEngine ?? SimulationEngine(),
-        _assetCalculationEngine =
-            assetCalculationEngine ?? AssetCalculationEngine();
+  }) : _calculationEngine = calculationEngine ?? CalculationEngine(),
+       _simulationEngine = simulationEngine ?? SimulationEngine(),
+       _assetCalculationEngine =
+           assetCalculationEngine ?? AssetCalculationEngine();
 
   final CalculationEngine _calculationEngine;
   final SimulationEngine _simulationEngine;
@@ -226,23 +223,23 @@ class GameEngine {
         level: item.level,
       );
       slots[firstEmpty] = owned;
-    _state = GameState(
-      character: _state!.character,
-      stats: _calculationEngine.applyItemEffects(
-        currentStats: _state!.stats,
-        item: item,
-        schema: schema,
-        levelMultiplier: item.level,
-      ),
-      cash: _state!.cash - item.price,
-      holdings: _state!.holdings,
-      itemSlots: slots,
-      portfolioHistory: _state!.portfolioHistory,
-      currentYear: _state!.currentYear,
-      cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
-      cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
-      assetAllocationPercent: _state!.assetAllocationPercent,
-    );
+      _state = GameState(
+        character: _state!.character,
+        stats: _calculationEngine.applyItemEffects(
+          currentStats: _state!.stats,
+          item: item,
+          schema: schema,
+          levelMultiplier: item.level,
+        ),
+        cash: _state!.cash - item.price,
+        holdings: _state!.holdings,
+        itemSlots: slots,
+        portfolioHistory: _state!.portfolioHistory,
+        currentYear: _state!.currentYear,
+        cumulativeSimulationDataPoints: _state!.cumulativeSimulationDataPoints,
+        cumulativeSimulationEvents: _state!.cumulativeSimulationEvents,
+        assetAllocationPercent: _state!.assetAllocationPercent,
+      );
       return;
     }
     final mergeTargetSlot = _findMergeTargetSlotForStoreItem(item);
@@ -259,7 +256,9 @@ class GameEngine {
     if (_state == null) return;
     final existing = _state!.itemSlots[targetSlotIndex];
     if (existing == null) return;
-    if (existing.id != storeItem.id || existing.level != storeItem.level) return;
+    if (existing.id != storeItem.id || existing.level != storeItem.level) {
+      return;
+    }
     if (existing.level >= 3) return;
     final slots = List<OwnedItem?>.from(_state!.itemSlots);
     final newLevel = existing.level + 1;
@@ -357,15 +356,19 @@ class GameEngine {
     );
   }
 
-  void applyAssetPurchase(StoreItemAsset asset, int quantity,
-      {int allocationPercent = 0}) {
+  void applyAssetPurchase(
+    StoreItemAsset asset,
+    int quantity, {
+    int allocationPercent = 0,
+  }) {
     if (_state == null) return;
     final holdings = Map<String, PortfolioAsset>.from(_state!.holdings);
     final existing = holdings[asset.id];
     final newQuantity = quantity;
     final newPrice = asset.price.toDouble();
     if (existing != null) {
-      final totalCost = _assetCalculationEngine.totalValue(existing) +
+      final totalCost =
+          _assetCalculationEngine.totalValue(existing) +
           (newQuantity * newPrice);
       final totalQty = existing.quantity + newQuantity;
       final avgPrice = totalCost / totalQty;
@@ -475,6 +478,7 @@ class GameEngine {
   Stream<SimulationResult> startSimulation(
     List<Map<String, dynamic>> events, {
     List<Map<String, dynamic>> lifeEvents = const [],
+    List<SimulationScheduledEvent>? forcedEvents,
     ValueNotifier<double>? speedMultiplier,
     ValueNotifier<bool>? skipToEnd,
   }) {
@@ -494,6 +498,7 @@ class GameEngine {
       holdings: _state!.holdings,
       eventsConfig: events,
       lifeEventsConfig: lifeEvents,
+      forcedEvents: forcedEvents,
       speedMultiplier: speedMultiplier,
       skipToEnd: skipToEnd,
     );
@@ -526,19 +531,17 @@ class GameEngine {
   }) {
     if (_state == null) return;
     final cashAfterSim = finalCash ?? finalPortfolioValue.toInt();
-    final holdingsAfterSim =
-        finalHoldings ?? <String, PortfolioAsset>{};
+    final holdingsAfterSim = finalHoldings ?? <String, PortfolioAsset>{};
     final monthlySavings =
         (_state!.character.initialStats['monthlySavings'] ?? 0).toInt();
     final nextYear = _state!.currentYear + 1;
     final baseStats = Map<String, num>.from(_state!.character.initialStats);
     baseStats['money'] = cashAfterSim.toDouble();
     baseStats['monthlySavings'] = monthlySavings.toDouble();
-    final portfolioValueForHistory =
-        _assetCalculationEngine.portfolioValue(
-          cash: cashAfterSim,
-          holdings: holdingsAfterSim,
-        );
+    final portfolioValueForHistory = _assetCalculationEngine.portfolioValue(
+      cash: cashAfterSim,
+      holdings: holdingsAfterSim,
+    );
     final allocationMap = Map<String, int>.from(_state!.assetAllocationPercent);
     allocationMap.removeWhere((id, _) => !holdingsAfterSim.containsKey(id));
     _state = GameState(

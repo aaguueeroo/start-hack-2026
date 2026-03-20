@@ -7,18 +7,22 @@ import 'package:start_hack_2026/data/loaders/json_data_loader.dart';
 import 'package:start_hack_2026/data/mock/mock_game_repository.dart';
 import 'package:start_hack_2026/data/services/local_leaderboard_service.dart';
 import 'package:start_hack_2026/data/services/supabase_leaderboard_service.dart';
+import 'package:start_hack_2026/data/services/supabase_multiplayer_service.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/features/achievements/achievements_screen.dart';
 import 'package:start_hack_2026/features/character_selection/character_selection_screen.dart';
 import 'package:start_hack_2026/features/glossary/glossary_screen.dart';
 import 'package:start_hack_2026/features/home/home_screen.dart';
 import 'package:start_hack_2026/features/leaderboard/leaderboard_screen.dart';
+import 'package:start_hack_2026/features/multiplayer/multiplayer_room_screen.dart';
+import 'package:start_hack_2026/features/multiplayer/multiplayer_screen.dart';
 import 'package:start_hack_2026/features/game_won/game_won_screen.dart';
 import 'package:start_hack_2026/features/simulation/simulation_debug_screen.dart';
 import 'package:start_hack_2026/features/simulation/simulation_screen.dart';
 import 'package:start_hack_2026/features/store/store_screen.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
 import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
+import 'package:start_hack_2026/modules/multiplayer/controllers/multiplayer_controller.dart';
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
@@ -60,10 +64,19 @@ class App extends StatelessWidget {
         Provider<SupabaseLeaderboardService>(
           create: (_) => SupabaseLeaderboardService(),
         ),
+        Provider<SupabaseMultiplayerService>(
+          create: (_) => SupabaseMultiplayerService(),
+        ),
         ChangeNotifierProvider<LeaderboardController>(
           create: (context) => LeaderboardController(
             localService: context.read<LocalLeaderboardService>(),
             supabaseService: context.read<SupabaseLeaderboardService>(),
+          ),
+        ),
+        ChangeNotifierProvider<MultiplayerController>(
+          create: (context) => MultiplayerController(
+            gameRepository: context.read<MockGameRepository>(),
+            multiplayerService: context.read<SupabaseMultiplayerService>(),
           ),
         ),
       ],
@@ -87,7 +100,9 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/character-selection',
-      builder: (context, state) => const CharacterSelectionScreen(),
+      builder: (context, state) => CharacterSelectionScreen(
+        fromMultiplayer: state.uri.queryParameters['from'] == 'multiplayer',
+      ),
     ),
     GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
     GoRoute(
@@ -109,6 +124,14 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/leaderboard',
       builder: (context, state) => const LeaderboardScreen(),
+    ),
+    GoRoute(
+      path: '/multiplayer',
+      builder: (context, state) => const MultiplayerScreen(),
+    ),
+    GoRoute(
+      path: '/multiplayer/room',
+      builder: (context, state) => const MultiplayerRoomScreen(),
     ),
   ],
 );
