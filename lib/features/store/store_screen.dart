@@ -10,6 +10,8 @@ import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/character_preview_stat_bars.dart';
 import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
+import 'package:start_hack_2026/core/widgets/comic_tooltip_anchored_popup.dart';
+import 'package:start_hack_2026/core/widgets/comic_tooltip_arrow_painter.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
@@ -20,6 +22,7 @@ import 'package:start_hack_2026/domain/entities/stat_schema.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
+import 'package:start_hack_2026/features/store/store_asset_education_overlay.dart';
 import 'package:start_hack_2026/features/store/store_purchase_fly_overlay.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
 
@@ -77,11 +80,13 @@ class _StoreScreenState extends State<StoreScreen> {
   final GlobalKey _portfolioButtonKey = GlobalKey();
   final GlobalKey _purchaseFlyStackKey = GlobalKey();
   OverlayEntry? _portfolioOverlayEntry;
+  OverlayEntry? _storeAssetEducationOverlayEntry;
   _StoreHudPanel? _activeHudPanel;
   late final List<GlobalKey> _itemSlotKeys;
   final GlobalKey _assetSectionContentKey = GlobalKey();
   final Map<String, GlobalKey> _storeCardKeys = <String, GlobalKey>{};
   final Map<String, GlobalKey> _assetCardKeys = <String, GlobalKey>{};
+  final Map<String, LayerLink> _storeOfferLayerLinks = <String, LayerLink>{};
   _PurchaseFlyInProgress? _purchaseFly;
 
   @override
@@ -109,6 +114,11 @@ class _StoreScreenState extends State<StoreScreen> {
 
   GlobalKey _globalKeyForAssetCard(String assetId) {
     return _assetCardKeys.putIfAbsent(assetId, GlobalKey.new);
+  }
+
+  LayerLink _layerLinkForStoreOfferSlot(int index, StoreItem item) {
+    final k = '$index-${_storeItemStorageKey(item)}';
+    return _storeOfferLayerLinks.putIfAbsent(k, LayerLink.new);
   }
 
   Rect? _rectFromContext(BuildContext? ctx) {
@@ -216,12 +226,44 @@ class _StoreScreenState extends State<StoreScreen> {
         ),
       ),
     );
-    Overlay.of(context).insert(_portfolioOverlayEntry!);
+    Overlay.of(context, rootOverlay: true).insert(_portfolioOverlayEntry!);
   }
 
   void _hidePortfolioOverlay() {
     _portfolioOverlayEntry?.remove();
     _portfolioOverlayEntry = null;
+  }
+
+  void _showStoreAssetEducation(
+    BuildContext context,
+    LayerLink layerLink,
+    StoreItemAsset asset,
+  ) {
+    _hideStoreAssetEducation();
+    _storeAssetEducationOverlayEntry = OverlayEntry(
+      builder: (overlayContext) => Positioned.fill(
+        child: StoreAssetEducationPanel(
+          layerLink: layerLink,
+          asset: asset,
+          onDismiss: _hideStoreAssetEducation,
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(
+      _storeAssetEducationOverlayEntry!,
+    );
+  }
+
+  void _hideStoreAssetEducation() {
+    _storeAssetEducationOverlayEntry?.remove();
+    _storeAssetEducationOverlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _hidePortfolioOverlay();
+    _hideStoreAssetEducation();
+    super.dispose();
   }
 
   @override
@@ -337,6 +379,10 @@ class _StoreScreenState extends State<StoreScreen> {
                                             .storeAssetAllocationPercentPerBuy,
                                     getStoreAssetPurchaseCashCost: controller
                                         .getStoreAssetPurchaseCashCost,
+                                    onShowStoreAssetEducation:
+                                        _showStoreAssetEducation,
+                                    layerLinkForStoreOfferSlot:
+                                        _layerLinkForStoreOfferSlot,
                                   ),
                                   const SizedBox(height: SpacingConstants.lg),
                                   _ItemSlotsSection(
@@ -973,9 +1019,8 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
     return Stack(
       children: [
         Positioned.fill(
-          child: Listener(
-            onPointerUp: (_) => widget.onDismiss(),
-            behavior: HitTestBehavior.translucent,
+          child: IgnorePointer(
+            ignoring: true,
             child: const SizedBox.expand(),
           ),
         ),
@@ -1007,6 +1052,7 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
                   currentPortfolioValue: widget.currentPortfolioValue,
                   currentYear: widget.currentYear,
                   arrowCenterX: arrowCenterX,
+                  onDismiss: widget.onDismiss,
                 ),
               );
             },
@@ -1023,12 +1069,14 @@ class _PortfolioPopup extends StatelessWidget {
     required this.currentPortfolioValue,
     required this.currentYear,
     required this.arrowCenterX,
+    required this.onDismiss,
   });
 
   final List<PortfolioHistoryPoint> portfolioHistory;
   final double currentPortfolioValue;
   final int currentYear;
   final double arrowCenterX;
+  final VoidCallback onDismiss;
 
   List<PortfolioHistoryPoint> _buildDataPoints() {
     final points = List<PortfolioHistoryPoint>.from(portfolioHistory);
@@ -1058,7 +1106,7 @@ class _PortfolioPopup extends StatelessWidget {
           SizedBox(
             height: 12,
             child: CustomPaint(
-              painter: _TooltipArrowPainter(
+              painter: ComicTooltipArrowPainter(
                 color: GameThemeConstants.creamSurface,
                 borderColor: GameThemeConstants.outlineColor,
                 arrowCenterX: arrowCenterX,
@@ -1092,11 +1140,31 @@ class _PortfolioPopup extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Portfolio Evolution',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Portfolio Evolution',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: onDismiss,
+                      tooltip: 'Close',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      icon: Icon(
+                        Icons.close,
+                        size: 22,
+                        color: GameThemeConstants.outlineColor,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: SpacingConstants.md),
                 if (isEmpty)
@@ -1167,6 +1235,8 @@ class _BuySection extends StatelessWidget {
     required this.cash,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
+    required this.onShowStoreAssetEducation,
+    required this.layerLinkForStoreOfferSlot,
   });
 
   final List<StoreItem> storeOffer;
@@ -1186,6 +1256,13 @@ class _BuySection extends StatelessWidget {
   final int cash;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
+  final void Function(
+    BuildContext context,
+    LayerLink layerLink,
+    StoreItemAsset asset,
+  )
+  onShowStoreAssetEducation;
+  final LayerLink Function(int index, StoreItem item) layerLinkForStoreOfferSlot;
 
   @override
   Widget build(BuildContext context) {
@@ -1260,6 +1337,8 @@ class _BuySection extends StatelessWidget {
           statsSchema: statsSchema,
           storeAssetAllocationPercentPerBuy: storeAssetAllocationPercentPerBuy,
           getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
+          onShowStoreAssetEducation: onShowStoreAssetEducation,
+          layerLinkForStoreOfferSlot: layerLinkForStoreOfferSlot,
         ),
       ],
     );
@@ -1387,6 +1466,8 @@ class _StoreGrid extends StatelessWidget {
     required this.statsSchema,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
+    required this.onShowStoreAssetEducation,
+    required this.layerLinkForStoreOfferSlot,
   });
 
   final List<StoreItem> items;
@@ -1401,6 +1482,13 @@ class _StoreGrid extends StatelessWidget {
   final List<StatSchema> statsSchema;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
+  final void Function(
+    BuildContext context,
+    LayerLink layerLink,
+    StoreItemAsset asset,
+  )
+  onShowStoreAssetEducation;
+  final LayerLink Function(int index, StoreItem item) layerLinkForStoreOfferSlot;
 
   @override
   Widget build(BuildContext context) {
@@ -1454,6 +1542,9 @@ class _StoreGrid extends StatelessWidget {
               child: KeyedSubtree(
                 key: cardKey,
                 child: _StoreItemCard(
+                  assetLayerLink: item is StoreItemAsset
+                      ? layerLinkForStoreOfferSlot(index, item)
+                      : null,
                   item: item,
                   canBuy: canBuy(item),
                   onBuy: () {
@@ -1464,6 +1555,7 @@ class _StoreGrid extends StatelessWidget {
                   storeAssetAllocationPercentPerBuy:
                       storeAssetAllocationPercentPerBuy,
                   getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
+                  onShowStoreAssetEducation: onShowStoreAssetEducation,
                 ),
               ),
             ),
@@ -1773,14 +1865,18 @@ class _AssetSlotsSection extends StatefulWidget {
 
 class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
   OverlayEntry? _tooltipOverlayEntry;
+  final Map<String, LayerLink> _holdingAssetLayerLinks = <String, LayerLink>{};
+
+  LayerLink _layerLinkForHolding(String assetId) {
+    return _holdingAssetLayerLinks.putIfAbsent(assetId, LayerLink.new);
+  }
 
   void _showAssetTooltip(BuildContext context, PortfolioAsset asset) {
     _hideAssetTooltip();
-    final GlobalKey cardKey = widget.getAssetCardKey(asset.assetId);
     _tooltipOverlayEntry = OverlayEntry(
       builder: (overlayContext) => Positioned.fill(
         child: _AssetTooltipOverlay(
-          cardKey: cardKey,
+          layerLink: _layerLinkForHolding(asset.assetId),
           asset: asset,
           statsSchema: widget.statsSchema,
           totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
@@ -1792,7 +1888,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
         ),
       ),
     );
-    Overlay.of(context).insert(_tooltipOverlayEntry!);
+    Overlay.of(context, rootOverlay: true).insert(_tooltipOverlayEntry!);
   }
 
   void _hideAssetTooltip() {
@@ -1891,6 +1987,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                             .toDouble();
                         return _AssetSlotCard(
                           key: widget.getAssetCardKey(asset.assetId),
+                          layerLink: _layerLinkForHolding(asset.assetId),
                           asset: asset,
                           totalReturnPercent: widget.getAssetTotalReturnPercent(
                             asset,
@@ -1908,9 +2005,9 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
   }
 }
 
-class _AssetTooltipOverlay extends StatefulWidget {
+class _AssetTooltipOverlay extends StatelessWidget {
   const _AssetTooltipOverlay({
-    required this.cardKey,
+    required this.layerLink,
     required this.asset,
     required this.statsSchema,
     required this.totalReturnPercent,
@@ -1918,40 +2015,15 @@ class _AssetTooltipOverlay extends StatefulWidget {
     required this.onDismiss,
   });
 
-  final GlobalKey cardKey;
+  final LayerLink layerLink;
   final PortfolioAsset asset;
   final List<StatSchema> statsSchema;
   final double totalReturnPercent;
   final VoidCallback onSell;
   final VoidCallback onDismiss;
 
-  @override
-  State<_AssetTooltipOverlay> createState() => _AssetTooltipOverlayState();
-}
-
-class _AssetTooltipOverlayState extends State<_AssetTooltipOverlay> {
-  Offset? _cardPosition;
-  Size? _cardSize;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updatePosition());
-  }
-
-  void _updatePosition() {
-    final renderBox =
-        widget.cardKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox != null && mounted) {
-      setState(() {
-        _cardPosition = renderBox.localToGlobal(Offset.zero);
-        _cardSize = renderBox.size;
-      });
-    }
-  }
-
   String _getStatDisplayName(String statId) {
-    return widget.statsSchema
+    return statsSchema
             .where((s) => s.id == statId)
             .map((s) => s.displayName)
             .firstOrNull ??
@@ -1961,150 +2033,28 @@ class _AssetTooltipOverlayState extends State<_AssetTooltipOverlay> {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: Listener(
-            onPointerUp: (_) => widget.onDismiss(),
-            behavior: HitTestBehavior.translucent,
+          child: IgnorePointer(
+            ignoring: true,
             child: const SizedBox.expand(),
           ),
         ),
-        if (_cardPosition != null && _cardSize != null)
-          _AssetTooltipPopup(
-            cardPosition: _cardPosition!,
-            cardSize: _cardSize!,
-            asset: widget.asset,
-            totalReturnPercent: widget.totalReturnPercent,
+        ComicTooltipFollowerBelow(
+          layerLink: layerLink,
+          tooltipWidth: 200,
+          content: _AssetTooltipContent(
+            asset: asset,
+            totalReturnPercent: totalReturnPercent,
             getStatDisplayName: _getStatDisplayName,
-            onSell: widget.onSell,
+            onSell: onSell,
+            onDismiss: onDismiss,
           ),
+        ),
       ],
     );
   }
-}
-
-class _AssetTooltipPopup extends StatelessWidget {
-  const _AssetTooltipPopup({
-    required this.cardPosition,
-    required this.cardSize,
-    required this.asset,
-    required this.totalReturnPercent,
-    required this.getStatDisplayName,
-    required this.onSell,
-  });
-
-  final Offset cardPosition;
-  final Size cardSize;
-  final PortfolioAsset asset;
-  final double totalReturnPercent;
-  final String Function(String) getStatDisplayName;
-  final VoidCallback onSell;
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    const tooltipWidth = 200.0;
-    const arrowHeight = 12.0;
-    const spacing = SpacingConstants.sm;
-    final cardCenterX = cardPosition.dx + cardSize.width / 2;
-    var tooltipLeft = cardCenterX - tooltipWidth / 2;
-    tooltipLeft = tooltipLeft.clamp(
-      SpacingConstants.md,
-      MediaQuery.of(context).size.width - tooltipWidth - SpacingConstants.md,
-    );
-    final arrowCenterX = cardCenterX - tooltipLeft;
-    final showAbove = cardPosition.dy > screenHeight / 2;
-    return Positioned(
-      left: tooltipLeft,
-      top: showAbove ? null : cardPosition.dy + cardSize.height + spacing,
-      bottom: showAbove ? screenHeight - cardPosition.dy + spacing : null,
-      width: tooltipWidth,
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showAbove) ...[
-              _AssetTooltipContent(
-                asset: asset,
-                totalReturnPercent: totalReturnPercent,
-                getStatDisplayName: getStatDisplayName,
-                onSell: onSell,
-              ),
-              CustomPaint(
-                size: Size(tooltipWidth, arrowHeight),
-                painter: _TooltipArrowPainter(
-                  color: GameThemeConstants.creamSurface,
-                  borderColor: GameThemeConstants.outlineColor,
-                  arrowCenterX: arrowCenterX,
-                  pointingDown: true,
-                ),
-              ),
-            ] else ...[
-              CustomPaint(
-                size: Size(tooltipWidth, arrowHeight),
-                painter: _TooltipArrowPainter(
-                  color: GameThemeConstants.creamSurface,
-                  borderColor: GameThemeConstants.outlineColor,
-                  arrowCenterX: arrowCenterX,
-                  pointingDown: false,
-                ),
-              ),
-              _AssetTooltipContent(
-                asset: asset,
-                totalReturnPercent: totalReturnPercent,
-                getStatDisplayName: getStatDisplayName,
-                onSell: onSell,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TooltipArrowPainter extends CustomPainter {
-  _TooltipArrowPainter({
-    required this.color,
-    required this.borderColor,
-    required this.arrowCenterX,
-    required this.pointingDown,
-  });
-
-  final Color color;
-  final Color borderColor;
-  final double arrowCenterX;
-  final bool pointingDown;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const arrowWidth = 16.0;
-    final path = Path();
-    if (pointingDown) {
-      path.moveTo(arrowCenterX - arrowWidth / 2, 0);
-      path.lineTo(arrowCenterX + arrowWidth / 2, 0);
-      path.lineTo(arrowCenterX, size.height);
-      path.close();
-    } else {
-      path.moveTo(arrowCenterX - arrowWidth / 2, size.height);
-      path.lineTo(arrowCenterX + arrowWidth / 2, size.height);
-      path.lineTo(arrowCenterX, 0);
-      path.close();
-    }
-    canvas.drawPath(path, Paint()..color = color);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = GameThemeConstants.outlineThickness,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _AssetTooltipContent extends StatelessWidget {
@@ -2113,12 +2063,14 @@ class _AssetTooltipContent extends StatelessWidget {
     required this.totalReturnPercent,
     required this.getStatDisplayName,
     required this.onSell,
+    required this.onDismiss,
   });
 
   final PortfolioAsset asset;
   final double totalReturnPercent;
   final String Function(String) getStatDisplayName;
   final VoidCallback onSell;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -2149,12 +2101,33 @@ class _AssetTooltipContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            asset.name,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: GameThemeConstants.primaryDark,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  asset.name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: GameThemeConstants.primaryDark,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onDismiss,
+                tooltip: 'Close',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
+                icon: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: GameThemeConstants.outlineColor,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: SpacingConstants.xs),
           Text(
@@ -2224,12 +2197,14 @@ class _AssetTooltipContent extends StatelessWidget {
 class _AssetSlotCard extends StatelessWidget {
   const _AssetSlotCard({
     super.key,
+    required this.layerLink,
     required this.asset,
     required this.totalReturnPercent,
     required this.allocationPercent,
     required this.onTap,
   });
 
+  final LayerLink layerLink;
   final PortfolioAsset asset;
   final double totalReturnPercent;
   final double allocationPercent;
@@ -2239,56 +2214,59 @@ class _AssetSlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: GameCard(
-        padding: const EdgeInsets.all(SpacingConstants.xs),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              asset.icon == 'attach_money'
-                  ? Image.asset(_coinAssetPath, width: 22, height: 22)
-                  : Icon(
-                      asset.icon.toIconData(),
-                      size: 22,
-                      color: GameThemeConstants.primaryDark,
-                    ),
-              const SizedBox(height: SpacingConstants.xs),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    totalReturnPercent >= 0
-                        ? Icons.arrow_drop_up
-                        : Icons.arrow_drop_down,
-                    size: 16,
-                    color: totalReturnPercent >= 0
-                        ? GameThemeConstants.statPositive
-                        : GameThemeConstants.statNegative,
-                  ),
-                  Text(
-                    '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      child: CompositedTransformTarget(
+        link: layerLink,
+        child: GameCard(
+          padding: const EdgeInsets.all(SpacingConstants.xs),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                asset.icon == 'attach_money'
+                    ? Image.asset(_coinAssetPath, width: 22, height: 22)
+                    : Icon(
+                        asset.icon.toIconData(),
+                        size: 22,
+                        color: GameThemeConstants.primaryDark,
+                      ),
+                const SizedBox(height: SpacingConstants.xs),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      totalReturnPercent >= 0
+                          ? Icons.arrow_drop_up
+                          : Icons.arrow_drop_down,
+                      size: 16,
                       color: totalReturnPercent >= 0
                           ? GameThemeConstants.statPositive
                           : GameThemeConstants.statNegative,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
                     ),
-                  ),
-                ],
-              ),
-              Text(
-                '${allocationPercent.toStringAsFixed(0)}% alloc.',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: GameThemeConstants.outlineColorLight,
-                  fontSize: 9,
+                    Text(
+                      '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: totalReturnPercent >= 0
+                            ? GameThemeConstants.statPositive
+                            : GameThemeConstants.statNegative,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                Text(
+                  '${allocationPercent.toStringAsFixed(0)}% alloc.',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: GameThemeConstants.outlineColorLight,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2512,20 +2490,30 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
 
 class _StoreItemCard extends StatelessWidget {
   const _StoreItemCard({
+    required this.assetLayerLink,
     required this.item,
     required this.canBuy,
     required this.onBuy,
     required this.statsSchema,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
+    required this.onShowStoreAssetEducation,
   });
 
+  /// Layer link for [CompositedTransformTarget]; null for knowledge items.
+  final LayerLink? assetLayerLink;
   final StoreItem item;
   final bool canBuy;
   final bool Function() onBuy;
   final List<StatSchema> statsSchema;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
+  final void Function(
+    BuildContext context,
+    LayerLink layerLink,
+    StoreItemAsset asset,
+  )
+  onShowStoreAssetEducation;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -2544,11 +2532,16 @@ class _StoreItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GameCard(
+    final card = GameCard(
       backgroundColor: _getCardBackgroundColor(),
       padding: const EdgeInsets.all(SpacingConstants.sm),
       child: _buildCardLayout(context),
     );
+    final link = assetLayerLink;
+    if (link != null) {
+      return CompositedTransformTarget(link: link, child: card);
+    }
+    return card;
   }
 
   Widget _buildCardLayout(BuildContext context) {
@@ -2570,6 +2563,48 @@ class _StoreItemCard extends StatelessWidget {
                         color: GameThemeConstants.primaryDark,
                       ),
               ),
+              if (item case final StoreItemAsset storeAsset)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        final l = assetLayerLink;
+                        if (l != null) {
+                          onShowStoreAssetEducation(context, l, storeAsset);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: GameThemeConstants.creamSurface,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: GameThemeConstants.outlineColor,
+                            width: GameThemeConstants.outlineThicknessSmall,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: GameThemeConstants.outlineColor.withValues(
+                                alpha: 0.12,
+                              ),
+                              offset: const Offset(0, 2),
+                              blurRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.help_outline,
+                          size: 16,
+                          color: GameThemeConstants.primaryDark,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
