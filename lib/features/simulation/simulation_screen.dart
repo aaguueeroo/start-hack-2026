@@ -8,6 +8,7 @@ import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/popup_enter_exit_transition.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart'
     show SimulationDataPoint, SimulationEvent, SimulationEventType;
 import 'package:start_hack_2026/modules/multiplayer/controllers/multiplayer_controller.dart';
@@ -107,7 +108,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                           await context
                               .read<StoreController>()
                               .refreshFromGameState();
-                          if (context.mounted) context.go('/store');
+                          if (context.mounted) context.pop();
                         },
                         variant: GameButtonVariant.primary,
                       ),
@@ -263,7 +264,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                             if (controller.shouldShowResults) {
                               context.pushReplacement('/game-won');
                             } else {
-                              context.go('/store');
+                              context.pop();
                             }
                           },
                           variant: GameButtonVariant.success,
@@ -314,15 +315,21 @@ class _YearEventsList extends StatelessWidget {
         ),
         const SizedBox(height: SpacingConstants.sm),
         ...yearEvents.asMap().entries.map(
-          (MapEntry<int, SimulationEvent> e) => Padding(
-            key: ValueKey<String>(_simulationEventAnimationKey(e.value)),
-            padding: const EdgeInsets.only(bottom: SpacingConstants.sm),
-            child: _AnimatedYearEventTile(
-              event: e.value,
-              currentYear: currentYear,
-              staggerIndex: e.key,
-            ),
-          ),
+          (MapEntry<int, SimulationEvent> e) {
+            final double? previousPortfolioValue = e.key > 0
+                ? yearEvents[e.key - 1].portfolioValueAtEvent
+                : null;
+            return Padding(
+              key: ValueKey<String>(_simulationEventAnimationKey(e.value)),
+              padding: const EdgeInsets.only(bottom: SpacingConstants.sm),
+              child: _AnimatedYearEventTile(
+                event: e.value,
+                currentYear: currentYear,
+                staggerIndex: e.key,
+                previousPortfolioValue: previousPortfolioValue,
+              ),
+            );
+          },
         ),
       ],
     );
@@ -330,10 +337,15 @@ class _YearEventsList extends StatelessWidget {
 }
 
 class _YearEventTile extends StatelessWidget {
-  const _YearEventTile({required this.event, required this.currentYear});
+  const _YearEventTile({
+    required this.event,
+    required this.currentYear,
+    this.previousPortfolioValue,
+  });
 
   final SimulationEvent event;
   final int currentYear;
+  final double? previousPortfolioValue;
 
   static const int _monthsPerYear = 12;
 
@@ -389,7 +401,7 @@ class _YearEventTile extends StatelessWidget {
                   Text(
                     'Month $monthInYear · Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: GameThemeConstants.accentDark,
+                      color: _portfolioChangeColor(),
                     ),
                   ),
                 ],
@@ -399,6 +411,17 @@ class _YearEventTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _portfolioChangeColor() {
+    if (previousPortfolioValue == null) {
+      return GameThemeConstants.accentDark;
+    }
+    final double current = event.portfolioValueAtEvent;
+    final double previous = previousPortfolioValue!;
+    if (current > previous) return GameThemeConstants.statPositive;
+    if (current < previous) return GameThemeConstants.statNegative;
+    return GameThemeConstants.accentDark;
   }
 
   IconData _iconForType(SimulationEventType type) {
@@ -543,11 +566,13 @@ class _AnimatedYearEventTile extends StatefulWidget {
     required this.event,
     required this.currentYear,
     required this.staggerIndex,
+    this.previousPortfolioValue,
   });
 
   final SimulationEvent event;
   final int currentYear;
   final int staggerIndex;
+  final double? previousPortfolioValue;
 
   @override
   State<_AnimatedYearEventTile> createState() => _AnimatedYearEventTileState();
@@ -608,6 +633,7 @@ class _AnimatedYearEventTileState extends State<_AnimatedYearEventTile>
       child: _YearEventTile(
         event: widget.event,
         currentYear: widget.currentYear,
+        previousPortfolioValue: widget.previousPortfolioValue,
       ),
     );
   }
@@ -638,6 +664,8 @@ class _SimulationChartState extends State<_SimulationChart>
   static const int _monthsPerYear = 12;
 
   final GlobalKey _chartKey = GlobalKey();
+  final GlobalKey<PopupEnterExitTransitionState> _eventOverlayTransitionKey =
+      GlobalKey<PopupEnterExitTransitionState>();
   OverlayEntry? _eventOverlayEntry;
 
   late final AnimationController _tailController;
@@ -858,20 +886,33 @@ class _SimulationChartState extends State<_SimulationChart>
   }
 
   void _showEventOverlay(SimulationEvent event, Offset globalMarkerPosition) {
-    _hideEventOverlay();
-    _eventOverlayEntry = OverlayEntry(
+    _hideEventOverlayImmediate();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
       builder: (overlayContext) => Positioned.fill(
         child: _EventPopupOverlay(
           event: event,
           markerPosition: globalMarkerPosition,
-          onDismiss: _hideEventOverlay,
+          onDismiss: () =>
+              _eventOverlayTransitionKey.currentState?.animateOut(),
+          transitionKey: _eventOverlayTransitionKey,
+          onDismissComplete: () {
+            entry.remove();
+            if (mounted) setState(() => _eventOverlayEntry = null);
+          },
         ),
       ),
     );
-    Overlay.of(context).insert(_eventOverlayEntry!);
+    _eventOverlayEntry = entry;
+    Overlay.of(context).insert(entry);
   }
 
-  void _hideEventOverlay() {
+  void _hideEventOverlayAnimated() {
+    _eventOverlayTransitionKey.currentState?.animateOut() ??
+        _hideEventOverlayImmediate();
+  }
+
+  void _hideEventOverlayImmediate() {
     _eventOverlayEntry?.remove();
     _eventOverlayEntry = null;
     setState(() {});
@@ -879,6 +920,7 @@ class _SimulationChartState extends State<_SimulationChart>
 
   @override
   void dispose() {
+    _hideEventOverlayImmediate();
     _tailController.dispose();
     _clearEventIntroState();
     super.dispose();
@@ -1088,14 +1130,14 @@ class _SimulationChartState extends State<_SimulationChart>
                       if (response?.lineBarSpots == null ||
                           response!.lineBarSpots!.isEmpty) {
                         if (event is FlTapUpEvent || event is FlPanEndEvent) {
-                          _hideEventOverlay();
+                          _hideEventOverlayAnimated();
                         }
                         return;
                       }
                       final spot = response.lineBarSpots!.first;
                       if (!eventSpotIndices.contains(spot.spotIndex)) {
                         if (event is FlTapUpEvent || event is FlPanEndEvent) {
-                          _hideEventOverlay();
+                          _hideEventOverlayAnimated();
                         }
                         return;
                       }
@@ -1229,11 +1271,15 @@ class _EventPopupOverlay extends StatefulWidget {
     required this.event,
     required this.markerPosition,
     required this.onDismiss,
+    required this.transitionKey,
+    required this.onDismissComplete,
   });
 
   final SimulationEvent event;
   final Offset markerPosition;
   final VoidCallback onDismiss;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   @override
   State<_EventPopupOverlay> createState() => _EventPopupOverlayState();
@@ -1257,17 +1303,29 @@ class _EventPopupOverlayState extends State<_EventPopupOverlay> {
             child: const SizedBox.expand(),
           ),
         ),
-        _EventPopup(event: widget.event, markerPosition: widget.markerPosition),
+        _EventPopup(
+          event: widget.event,
+          markerPosition: widget.markerPosition,
+          transitionKey: widget.transitionKey,
+          onDismissComplete: widget.onDismissComplete,
+        ),
       ],
     );
   }
 }
 
 class _EventPopup extends StatelessWidget {
-  const _EventPopup({required this.event, required this.markerPosition});
+  const _EventPopup({
+    required this.event,
+    required this.markerPosition,
+    required this.transitionKey,
+    required this.onDismissComplete,
+  });
 
   final SimulationEvent event;
   final Offset markerPosition;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   static const double _arrowHeight = 12.0;
   static const double _popupWidth = 200.0;
@@ -1285,47 +1343,55 @@ class _EventPopup extends StatelessWidget {
     );
     final arrowCenterX = markerCenterX - popupLeft;
     final showAbove = markerPosition.dy < screenHeight / 2;
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showAbove) ...[
+          _EventPopupContent(event: event),
+          SizedBox(
+            height: _arrowHeight,
+            child: CustomPaint(
+              painter: _EventPopupArrowPainter(
+                color: GameThemeConstants.creamSurface,
+                borderColor: GameThemeConstants.outlineColor,
+                arrowCenterX: arrowCenterX,
+                pointingDown: true,
+              ),
+            ),
+          ),
+        ] else ...[
+          SizedBox(
+            height: _arrowHeight,
+            child: CustomPaint(
+              painter: _EventPopupArrowPainter(
+                color: GameThemeConstants.creamSurface,
+                borderColor: GameThemeConstants.outlineColor,
+                arrowCenterX: arrowCenterX,
+                pointingDown: false,
+              ),
+            ),
+          ),
+          _EventPopupContent(event: event),
+        ],
+      ],
+    );
+    final materialChild = Material(
+      color: Colors.transparent,
+      child: column,
+    );
+    final positionedChild = AnchoredTooltipPopupTransition(
+      showAbove: showAbove,
+      transitionKey: transitionKey,
+      onComplete: onDismissComplete,
+      child: materialChild,
+    );
     return Positioned(
       left: popupLeft,
-      top: showAbove ? null : markerPosition.dy - _spacing - _arrowHeight,
-      bottom: showAbove ? screenHeight - markerPosition.dy - _spacing : null,
+      top: showAbove ? null : markerPosition.dy + _spacing,
+      bottom: showAbove ? screenHeight - markerPosition.dy + _spacing : null,
       width: _popupWidth,
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showAbove) ...[
-              _EventPopupContent(event: event),
-              SizedBox(
-                height: _arrowHeight,
-                child: CustomPaint(
-                  painter: _EventPopupArrowPainter(
-                    color: GameThemeConstants.creamSurface,
-                    borderColor: GameThemeConstants.outlineColor,
-                    arrowCenterX: arrowCenterX,
-                    pointingDown: true,
-                  ),
-                ),
-              ),
-            ] else ...[
-              SizedBox(
-                height: _arrowHeight,
-                child: CustomPaint(
-                  painter: _EventPopupArrowPainter(
-                    color: GameThemeConstants.creamSurface,
-                    borderColor: GameThemeConstants.outlineColor,
-                    arrowCenterX: arrowCenterX,
-                    pointingDown: false,
-                  ),
-                ),
-              ),
-              _EventPopupContent(event: event),
-            ],
-          ],
-        ),
-      ),
+      child: positionedChild,
     );
   }
 }

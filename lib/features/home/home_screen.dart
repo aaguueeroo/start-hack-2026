@@ -52,6 +52,20 @@ class HomeScreen extends StatelessWidget {
                     );
                   },
                 ),
+                const SizedBox(height: SpacingConstants.sm),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SpacingConstants.md,
+                  ),
+                  child: Text(
+                    AppConstants.homeTagline,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: GameThemeConstants.statNeutral,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 const Spacer(),
                 GameButton(
                   label: 'New Game',

@@ -3,11 +3,10 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
-import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/constants/store_item_image_assets.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/core/widgets/store_item_art.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
-
-const String _coinAssetPath = 'assets/images/coin.png';
 
 String _formatLearningItemDisplayName(String baseName, int level) {
   final String roman = switch (level) {
@@ -151,13 +150,16 @@ class _StorePurchaseFlyThumbnail extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          item.icon == 'attach_money'
-              ? Image.asset(_coinAssetPath, width: 28, height: 28)
-              : Icon(
-                  item.icon.toIconData(),
-                  size: 28,
-                  color: GameThemeConstants.primaryDark,
-                ),
+          StoreItemArt(
+            icon: item.icon,
+            imagePath: switch (item) {
+              StoreItemItem() =>
+                StoreItemImageAssets.imagePathForKnowledgeItem(item.id),
+              StoreItemAsset() =>
+                StoreItemImageAssets.imagePathForStoreAsset(item.id),
+            },
+            size: 28,
+          ),
           const SizedBox(height: SpacingConstants.xs),
           Text(
             _title(),

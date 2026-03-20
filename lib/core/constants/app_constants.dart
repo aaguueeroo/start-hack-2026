@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 abstract final class AppConstants {
   static const String appName = 'InvestQuest';
+  static const String homeTagline =
+      'Stonks school: now with fewer yelling uncles';
 
   static const Color primaryColor = Color(0xFF6C5CE7);
   static const Color accentColor = Color(0xFF00CEC9);

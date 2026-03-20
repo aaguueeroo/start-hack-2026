@@ -75,9 +75,11 @@ flutter:
     - .env
     - assets/images/
     - assets/images/achievements/
+    - assets/images/asset/
     - assets/images/leaderboard/
-    - assets/images/winner/
+    - assets/images/learning/
     - assets/images/loser/
+    - assets/images/winner/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

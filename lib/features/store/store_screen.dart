@@ -7,10 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:start_hack_2026/core/constants/character_image_constants.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
+import 'package:start_hack_2026/core/constants/store_item_image_assets.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
+import 'package:start_hack_2026/core/widgets/store_item_art.dart';
 import 'package:start_hack_2026/core/widgets/character_preview_stat_bars.dart';
 import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
 import 'package:start_hack_2026/core/widgets/comic_tooltip_anchored_popup.dart';
+import 'package:start_hack_2026/core/widgets/popup_enter_exit_transition.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
@@ -80,6 +83,12 @@ class StoreScreen extends StatefulWidget {
 class _StoreScreenState extends State<StoreScreen> {
   final GlobalKey _portfolioButtonKey = GlobalKey();
   final GlobalKey _purchaseFlyStackKey = GlobalKey();
+  final GlobalKey<PopupEnterExitTransitionState> _storeEducationTransitionKey =
+      GlobalKey<PopupEnterExitTransitionState>();
+  final GlobalKey<PopupEnterExitTransitionState> _portfolioTransitionKey =
+      GlobalKey<PopupEnterExitTransitionState>();
+  final GlobalKey<_StoreHudOverlayState> _storeHudOverlayKey =
+      GlobalKey<_StoreHudOverlayState>();
   OverlayEntry? _portfolioOverlayEntry;
   OverlayEntry? _storeAssetEducationOverlayEntry;
   _StoreHudPanel? _activeHudPanel;
@@ -210,7 +219,7 @@ class _StoreScreenState extends State<StoreScreen> {
   }
 
   void _showPortfolioOverlay(BuildContext context, StoreController controller) {
-    _hidePortfolioOverlay();
+    _hidePortfolioOverlayImmediate();
     final double safeBottomInset = MediaQuery.paddingOf(context).bottom;
     const double storeBottomBarHeight =
         SpacingConstants.md * 2 +
@@ -221,7 +230,8 @@ class _StoreScreenState extends State<StoreScreen> {
         SpacingConstants.sm +
         storeBottomBarHeight +
         SpacingConstants.sm;
-    _portfolioOverlayEntry = OverlayEntry(
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
       builder: (overlayContext) => Positioned.fill(
         child: _PortfolioOverlay(
           portfolioButtonKey: _portfolioButtonKey,
@@ -229,24 +239,36 @@ class _StoreScreenState extends State<StoreScreen> {
           currentPortfolioValue: controller.currentPortfolioValue,
           currentYear: controller.currentYear,
           popupBottom: popupBottom,
-          onDismiss: _hidePortfolioOverlay,
+          onDismiss: () =>
+              _portfolioTransitionKey.currentState?.animateOut(),
+          transitionKey: _portfolioTransitionKey,
+          onDismissComplete: () {
+            entry.remove();
+            if (mounted) setState(() => _portfolioOverlayEntry = null);
+          },
         ),
       ),
     );
-    Overlay.of(context, rootOverlay: true).insert(_portfolioOverlayEntry!);
+    _portfolioOverlayEntry = entry;
+    Overlay.of(context, rootOverlay: true).insert(entry);
   }
 
-  void _hidePortfolioOverlay() {
+  void _hidePortfolioOverlayAnimated() {
+    _portfolioTransitionKey.currentState?.animateOut() ??
+        _hidePortfolioOverlayImmediate();
+  }
+
+  void _hidePortfolioOverlayImmediate() {
     _portfolioOverlayEntry?.remove();
     _portfolioOverlayEntry = null;
   }
 
   void _showItemInfo(BuildContext context, GlobalKey cardKey, StoreItem item) {
     if (_activeItemInfoId == item.id) {
-      _hideStoreAssetEducation();
+      _hideStoreAssetEducationAnimated();
       return;
     }
-    _hideStoreAssetEducation();
+    _hideStoreAssetEducationImmediate();
     final RenderBox? box =
         cardKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) {
@@ -255,30 +277,59 @@ class _StoreScreenState extends State<StoreScreen> {
     final Offset cardPosition = box.localToGlobal(Offset.zero);
     final Size cardSize = box.size;
     _activeItemInfoId = item.id;
-    _storeAssetEducationOverlayEntry = OverlayEntry(
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
       builder: (overlayContext) => switch (item) {
         StoreItemAsset() => _StoreAssetEducationPositioned(
           cardPosition: cardPosition,
           cardSize: cardSize,
           asset: item,
-          onDismiss: _hideStoreAssetEducation,
+          onDismiss: () =>
+              _storeEducationTransitionKey.currentState?.animateOut(),
+          transitionKey: _storeEducationTransitionKey,
+          onDismissComplete: () {
+            entry.remove();
+            if (mounted) {
+              setState(() {
+                _storeAssetEducationOverlayEntry = null;
+                _activeItemInfoId = null;
+              });
+            }
+          },
         ),
         StoreItemItem() => _KnowledgeItemInfoPositioned(
           cardPosition: cardPosition,
           cardSize: cardSize,
           item: item,
           statsSchema: context.read<StoreController>().statsSchema,
-          onDismiss: _hideStoreAssetEducation,
+          onDismiss: () =>
+              _storeEducationTransitionKey.currentState?.animateOut(),
+          transitionKey: _storeEducationTransitionKey,
+          onDismissComplete: () {
+            entry.remove();
+            if (mounted) {
+              setState(() {
+                _storeAssetEducationOverlayEntry = null;
+                _activeItemInfoId = null;
+              });
+            }
+          },
         ),
       },
     );
+    _storeAssetEducationOverlayEntry = entry;
     Overlay.of(
       context,
       rootOverlay: true,
-    ).insert(_storeAssetEducationOverlayEntry!);
+    ).insert(entry);
   }
 
-  void _hideStoreAssetEducation() {
+  void _hideStoreAssetEducationAnimated() {
+    _storeEducationTransitionKey.currentState?.animateOut() ??
+        _hideStoreAssetEducationImmediate();
+  }
+
+  void _hideStoreAssetEducationImmediate() {
     _storeAssetEducationOverlayEntry?.remove();
     _storeAssetEducationOverlayEntry = null;
     _activeItemInfoId = null;
@@ -286,8 +337,8 @@ class _StoreScreenState extends State<StoreScreen> {
 
   @override
   void dispose() {
-    _hidePortfolioOverlay();
-    _hideStoreAssetEducation();
+    _hidePortfolioOverlayImmediate();
+    _hideStoreAssetEducationImmediate();
     super.dispose();
   }
 
@@ -498,8 +549,8 @@ class _StoreScreenState extends State<StoreScreen> {
                             GestureDetector(
                               onLongPressDown: (_) =>
                                   _showPortfolioOverlay(context, controller),
-                              onLongPressUp: _hidePortfolioOverlay,
-                              onLongPressCancel: _hidePortfolioOverlay,
+                              onLongPressUp: _hidePortfolioOverlayAnimated,
+                              onLongPressCancel: _hidePortfolioOverlayAnimated,
                               child: SizedBox(
                                 key: _portfolioButtonKey,
                                 width: 52,
@@ -516,10 +567,22 @@ class _StoreScreenState extends State<StoreScreen> {
                                 () =>
                                     _activeHudPanel = _StoreHudPanel.character,
                               ),
-                              onLongPressUp: () =>
-                                  setState(() => _activeHudPanel = null),
-                              onLongPressCancel: () =>
-                                  setState(() => _activeHudPanel = null),
+                              onLongPressUp: () {
+                                final state = _storeHudOverlayKey.currentState;
+                                if (state != null) {
+                                  state.startDismiss();
+                                } else {
+                                  setState(() => _activeHudPanel = null);
+                                }
+                              },
+                              onLongPressCancel: () {
+                                final state = _storeHudOverlayKey.currentState;
+                                if (state != null) {
+                                  state.startDismiss();
+                                } else {
+                                  setState(() => _activeHudPanel = null);
+                                }
+                              },
                               child: const SizedBox(
                                 width: 52,
                                 height: 52,
@@ -532,30 +595,14 @@ class _StoreScreenState extends State<StoreScreen> {
                           ],
                         ),
                       ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SafeArea(
-                          bottom: false,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.bug_report),
-                                onPressed: () =>
-                                    context.push('/simulation-debug'),
-                                tooltip: 'Debug',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                       if (_activeHudPanel != null)
                         _StoreHudOverlay(
+                          key: _storeHudOverlayKey,
                           controller: controller,
                           bottomBarHeight: storeBottomBarHeight,
                           safeBottomInset: safeBottomInset,
+                          onDismissComplete: () =>
+                              setState(() => _activeHudPanel = null),
                         ),
                     ],
                   ),
@@ -566,25 +613,86 @@ class _StoreScreenState extends State<StoreScreen> {
   }
 }
 
-class _StoreHudOverlay extends StatelessWidget {
+class _StoreHudOverlay extends StatefulWidget {
   const _StoreHudOverlay({
+    super.key,
     required this.controller,
     required this.bottomBarHeight,
     required this.safeBottomInset,
+    required this.onDismissComplete,
   });
 
   final StoreController controller;
   final double bottomBarHeight;
   final double safeBottomInset;
+  final VoidCallback onDismissComplete;
+
+  @override
+  State<_StoreHudOverlay> createState() => _StoreHudOverlayState();
+}
+
+class _StoreHudOverlayState extends State<_StoreHudOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: GameThemeConstants.panelPopupEnterDuration,
+      reverseDuration: GameThemeConstants.panelPopupExitDuration,
+    );
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _scale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.03),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void startDismiss() {
+    _controller.reverse().then((_) {
+      if (mounted) widget.onDismissComplete();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final maxPopupHeight = screenHeight * 0.6;
     final popupBottom =
-        safeBottomInset +
+        widget.safeBottomInset +
         SpacingConstants.sm +
-        bottomBarHeight +
+        widget.bottomBarHeight +
         SpacingConstants.sm;
     return Positioned.fill(
       child: Stack(
@@ -599,12 +707,22 @@ class _StoreHudOverlay extends StatelessWidget {
             left: SpacingConstants.md,
             right: SpacingConstants.md,
             bottom: popupBottom,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxPopupHeight),
-              child: GameCard(
-                child: SingleChildScrollView(
-                  child: _StoreHudCharacterContent(
-                    character: controller.character!,
+            child: FadeTransition(
+              opacity: _fade,
+              child: ScaleTransition(
+                scale: _scale,
+                alignment: Alignment.bottomCenter,
+                child: SlideTransition(
+                  position: _slide,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxPopupHeight),
+                    child: GameCard(
+                      child: SingleChildScrollView(
+                        child: _StoreHudCharacterContent(
+                          character: widget.controller.character!,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -994,6 +1112,8 @@ class _PortfolioOverlay extends StatefulWidget {
     required this.currentYear,
     required this.popupBottom,
     required this.onDismiss,
+    required this.transitionKey,
+    required this.onDismissComplete,
   });
 
   final GlobalKey portfolioButtonKey;
@@ -1002,6 +1122,8 @@ class _PortfolioOverlay extends StatefulWidget {
   final int currentYear;
   final double popupBottom;
   final VoidCallback onDismiss;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   @override
   State<_PortfolioOverlay> createState() => _PortfolioOverlayState();
@@ -1046,14 +1168,22 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
                 left: left,
                 right: left,
                 bottom: widget.popupBottom,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: maxPopupHeight),
-                  child: SingleChildScrollView(
-                    child: _PortfolioPopup(
-                      portfolioHistory: widget.portfolioHistory,
-                      currentPortfolioValue: widget.currentPortfolioValue,
-                      currentYear: widget.currentYear,
-                      onDismiss: widget.onDismiss,
+                child: PopupEnterExitTransition(
+                  key: widget.transitionKey,
+                  scaleAlignment: Alignment.bottomCenter,
+                  slideBegin: const Offset(0, 0.03),
+                  enterDuration: GameThemeConstants.panelPopupEnterDuration,
+                  exitDuration: GameThemeConstants.panelPopupExitDuration,
+                  onComplete: widget.onDismissComplete,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxPopupHeight),
+                    child: SingleChildScrollView(
+                      child: _PortfolioPopup(
+                        portfolioHistory: widget.portfolioHistory,
+                        currentPortfolioValue: widget.currentPortfolioValue,
+                        currentYear: widget.currentYear,
+                        onDismiss: widget.onDismiss,
+                      ),
                     ),
                   ),
                 ),
@@ -1760,10 +1890,10 @@ class _ItemSlotDragFeedback extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              owned.icon.toIconData(),
+            StoreItemArt(
+              icon: owned.icon,
+              imagePath: StoreItemImageAssets.imagePathForKnowledgeItem(owned.id),
               size: 28,
-              color: GameThemeConstants.primaryDark,
             ),
             const SizedBox(height: SpacingConstants.xs),
             Text(
@@ -1851,10 +1981,12 @@ class _ItemSlotCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        owned!.icon.toIconData(),
+                      StoreItemArt(
+                        icon: owned!.icon,
+                        imagePath: StoreItemImageAssets.imagePathForKnowledgeItem(
+                          owned!.id,
+                        ),
                         size: 26,
-                        color: GameThemeConstants.primaryDark,
                       ),
                       const SizedBox(height: SpacingConstants.xs),
                       Text(
@@ -1913,16 +2045,18 @@ class _AssetSlotsSection extends StatefulWidget {
 class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
   static const Duration _infoTooltipDuration = Duration(seconds: 5);
   final GlobalKey<TooltipState> _infoTooltipKey = GlobalKey<TooltipState>();
+  final GlobalKey<PopupEnterExitTransitionState> _assetTooltipTransitionKey =
+      GlobalKey<PopupEnterExitTransitionState>();
   bool _isInfoTooltipVisible = false;
   OverlayEntry? _tooltipOverlayEntry;
   String? _activeTooltipAssetId;
 
   void _showAssetTooltip(BuildContext context, PortfolioAsset asset) {
     if (_activeTooltipAssetId == asset.assetId) {
-      _hideAssetTooltip();
+      _hideAssetTooltipAnimated();
       return;
     }
-    _hideAssetTooltip();
+    _hideAssetTooltipImmediate();
     final GlobalKey cardKey = widget.getAssetCardKey(asset.assetId);
     final RenderBox? box =
         cardKey.currentContext?.findRenderObject() as RenderBox?;
@@ -1932,7 +2066,8 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
     final Offset cardPosition = box.localToGlobal(Offset.zero);
     final Size cardSize = box.size;
     _activeTooltipAssetId = asset.assetId;
-    _tooltipOverlayEntry = OverlayEntry(
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
       builder: (overlayContext) => _AssetTooltipPositioned(
         cardPosition: cardPosition,
         cardSize: cardSize,
@@ -1941,18 +2076,40 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
         totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
         onSell: () {
           widget.onSell(asset.assetId);
-          _hideAssetTooltip();
+          _hideAssetTooltipAnimated();
         },
-        onDismiss: _hideAssetTooltip,
+        onDismiss: () => _assetTooltipTransitionKey.currentState?.animateOut(),
+        transitionKey: _assetTooltipTransitionKey,
+        onDismissComplete: () {
+          entry.remove();
+          if (mounted) {
+            setState(() {
+              _tooltipOverlayEntry = null;
+              _activeTooltipAssetId = null;
+            });
+          }
+        },
       ),
     );
-    Overlay.of(context, rootOverlay: true).insert(_tooltipOverlayEntry!);
+    _tooltipOverlayEntry = entry;
+    Overlay.of(context, rootOverlay: true).insert(entry);
   }
 
-  void _hideAssetTooltip() {
+  void _hideAssetTooltipAnimated() {
+    _assetTooltipTransitionKey.currentState?.animateOut() ??
+        _hideAssetTooltipImmediate();
+  }
+
+  void _hideAssetTooltipImmediate() {
     _tooltipOverlayEntry?.remove();
     _tooltipOverlayEntry = null;
     _activeTooltipAssetId = null;
+  }
+
+  @override
+  void dispose() {
+    _hideAssetTooltipImmediate();
+    super.dispose();
   }
 
   @override
@@ -2093,6 +2250,8 @@ class _AssetTooltipPositioned extends StatelessWidget {
     required this.totalReturnPercent,
     required this.onSell,
     required this.onDismiss,
+    required this.transitionKey,
+    required this.onDismissComplete,
   });
 
   final Offset cardPosition;
@@ -2102,6 +2261,8 @@ class _AssetTooltipPositioned extends StatelessWidget {
   final double totalReturnPercent;
   final VoidCallback onSell;
   final VoidCallback onDismiss;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -2126,6 +2287,8 @@ class _AssetTooltipPositioned extends StatelessWidget {
           cardPosition: cardPosition,
           cardSize: cardSize,
           tooltipWidth: 220,
+          transitionKey: transitionKey,
+          onDismissComplete: onDismissComplete,
           content: GestureDetector(
             onTap: () {},
             behavior: HitTestBehavior.opaque,
@@ -2283,13 +2446,13 @@ class _AssetSlotCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              asset.icon == 'attach_money'
-                  ? Image.asset(_coinAssetPath, width: 22, height: 22)
-                  : Icon(
-                      asset.icon.toIconData(),
-                      size: 22,
-                      color: GameThemeConstants.primaryDark,
-                    ),
+              StoreItemArt(
+                icon: asset.icon,
+                imagePath: StoreItemImageAssets.imagePathForStoreAsset(
+                  asset.assetId,
+                ),
+                size: 22,
+              ),
               const SizedBox(height: SpacingConstants.xs),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -2602,13 +2765,16 @@ class _StoreItemCard extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Center(
-                child: item.icon == 'attach_money'
-                    ? Image.asset(_coinAssetPath, width: 40, height: 40)
-                    : Icon(
-                        item.icon.toIconData(),
-                        size: 80,
-                        color: GameThemeConstants.primaryDark,
-                      ),
+                child: StoreItemArt(
+                  icon: item.icon,
+                  imagePath: switch (item) {
+                    StoreItemItem() =>
+                      StoreItemImageAssets.imagePathForKnowledgeItem(item.id),
+                    StoreItemAsset() =>
+                      StoreItemImageAssets.imagePathForStoreAsset(item.id),
+                  },
+                  size: 80,
+                ),
               ),
               Positioned(
                 top: 0,
@@ -2638,7 +2804,7 @@ class _StoreItemCard extends StatelessWidget {
                         ],
                       ),
                       child: Icon(
-                        Icons.help_outline,
+                        Icons.question_mark,
                         size: 16,
                         color: GameThemeConstants.primaryDark,
                       ),
@@ -2801,12 +2967,16 @@ class _StoreAssetEducationPositioned extends StatelessWidget {
     required this.cardSize,
     required this.asset,
     required this.onDismiss,
+    required this.transitionKey,
+    required this.onDismissComplete,
   });
 
   final Offset cardPosition;
   final Size cardSize;
   final StoreItemAsset asset;
   final VoidCallback onDismiss;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -2823,6 +2993,8 @@ class _StoreAssetEducationPositioned extends StatelessWidget {
           cardPosition: cardPosition,
           cardSize: cardSize,
           tooltipWidth: kStoreAssetEducationTooltipWidth,
+          transitionKey: transitionKey,
+          onDismissComplete: onDismissComplete,
           content: GestureDetector(
             onTap: () {},
             behavior: HitTestBehavior.opaque,
@@ -2841,6 +3013,8 @@ class _KnowledgeItemInfoPositioned extends StatelessWidget {
     required this.item,
     required this.statsSchema,
     required this.onDismiss,
+    required this.transitionKey,
+    required this.onDismissComplete,
   });
 
   final Offset cardPosition;
@@ -2848,6 +3022,8 @@ class _KnowledgeItemInfoPositioned extends StatelessWidget {
   final StoreItemItem item;
   final List<StatSchema> statsSchema;
   final VoidCallback onDismiss;
+  final GlobalKey<PopupEnterExitTransitionState> transitionKey;
+  final VoidCallback onDismissComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -2864,6 +3040,8 @@ class _KnowledgeItemInfoPositioned extends StatelessWidget {
           cardPosition: cardPosition,
           cardSize: cardSize,
           tooltipWidth: 240,
+          transitionKey: transitionKey,
+          onDismissComplete: onDismissComplete,
           content: GestureDetector(
             onTap: () {},
             behavior: HitTestBehavior.opaque,

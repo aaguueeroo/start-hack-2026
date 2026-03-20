@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/comic_tooltip_arrow_painter.dart';
+import 'package:start_hack_2026/core/widgets/popup_enter_exit_transition.dart';
 
 /// Positions a comic-style tooltip above or below [cardPosition] / [cardSize].
 class ComicTooltipAnchoredPopup extends StatelessWidget {
@@ -14,6 +15,8 @@ class ComicTooltipAnchoredPopup extends StatelessWidget {
     required this.tooltipWidth,
     required this.content,
     this.arrowHeight = 12,
+    this.transitionKey,
+    this.onDismissComplete,
   });
 
   final Offset cardPosition;
@@ -21,6 +24,8 @@ class ComicTooltipAnchoredPopup extends StatelessWidget {
   final double tooltipWidth;
   final Widget content;
   final double arrowHeight;
+  final GlobalKey<PopupEnterExitTransitionState>? transitionKey;
+  final VoidCallback? onDismissComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -36,43 +41,56 @@ class ComicTooltipAnchoredPopup extends StatelessWidget {
     final arrowCenterX = cardCenterX - tooltipLeft;
     final showAbove = cardPosition.dy > screenHeight / 2;
 
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showAbove) ...[
+          content,
+          CustomPaint(
+            size: Size(tooltipWidth, arrowHeight),
+            painter: ComicTooltipArrowPainter(
+              color: GameThemeConstants.creamSurface,
+              borderColor: GameThemeConstants.outlineColor,
+              arrowCenterX: arrowCenterX,
+              pointingDown: true,
+            ),
+          ),
+        ] else ...[
+          CustomPaint(
+            size: Size(tooltipWidth, arrowHeight),
+            painter: ComicTooltipArrowPainter(
+              color: GameThemeConstants.creamSurface,
+              borderColor: GameThemeConstants.outlineColor,
+              arrowCenterX: arrowCenterX,
+              pointingDown: false,
+            ),
+          ),
+          content,
+        ],
+      ],
+    );
+
+    final materialChild = Material(
+      color: Colors.transparent,
+      child: column,
+    );
+
+    final positionedChild = transitionKey != null && onDismissComplete != null
+        ? AnchoredTooltipPopupTransition(
+            showAbove: showAbove,
+            transitionKey: transitionKey,
+            onComplete: onDismissComplete,
+            child: materialChild,
+          )
+        : materialChild;
+
     return Positioned(
       left: tooltipLeft,
       top: showAbove ? null : cardPosition.dy + cardSize.height + spacing,
       bottom: showAbove ? screenHeight - cardPosition.dy + spacing : null,
       width: tooltipWidth,
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showAbove) ...[
-              content,
-              CustomPaint(
-                size: Size(tooltipWidth, arrowHeight),
-                painter: ComicTooltipArrowPainter(
-                  color: GameThemeConstants.creamSurface,
-                  borderColor: GameThemeConstants.outlineColor,
-                  arrowCenterX: arrowCenterX,
-                  pointingDown: true,
-                ),
-              ),
-            ] else ...[
-              CustomPaint(
-                size: Size(tooltipWidth, arrowHeight),
-                painter: ComicTooltipArrowPainter(
-                  color: GameThemeConstants.creamSurface,
-                  borderColor: GameThemeConstants.outlineColor,
-                  arrowCenterX: arrowCenterX,
-                  pointingDown: false,
-                ),
-              ),
-              content,
-            ],
-          ],
-        ),
-      ),
+      child: positionedChild,
     );
   }
 }

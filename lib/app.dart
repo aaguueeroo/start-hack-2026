@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -104,7 +105,13 @@ final GoRouter _router = GoRouter(
         fromMultiplayer: state.uri.queryParameters['from'] == 'multiplayer',
       ),
     ),
-    GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
+    GoRoute(
+      path: '/store',
+      pageBuilder: (context, state) => CupertinoPage<void>(
+        key: state.pageKey,
+        child: const StoreScreen(),
+      ),
+    ),
     GoRoute(
       path: '/simulation',
       builder: (context, state) => const SimulationScreen(),

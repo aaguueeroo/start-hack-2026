@@ -80,6 +80,18 @@ abstract final class GameThemeConstants {
   /// Delay between consecutive event rows (stagger), in milliseconds.
   static const int simulationEventListStaggerMs = 48;
 
+  /// Anchored tooltip popups (events, store Q-mark, asset info): enter animation.
+  static const Duration anchoredPopupEnterDuration = Duration(milliseconds: 220);
+
+  /// Anchored tooltip popups: exit animation (slightly shorter).
+  static const Duration anchoredPopupExitDuration = Duration(milliseconds: 180);
+
+  /// Panel popups (portfolio, character HUD): enter animation.
+  static const Duration panelPopupEnterDuration = Duration(milliseconds: 260);
+
+  /// Panel popups: exit animation.
+  static const Duration panelPopupExitDuration = Duration(milliseconds: 200);
+
   /// Leaderboard podium: step heights (cartoon blocks, center = tallest).
   static const double leaderboardPodiumFirstHeight = 92.0;
   static const double leaderboardPodiumSecondHeight = 68.0;
